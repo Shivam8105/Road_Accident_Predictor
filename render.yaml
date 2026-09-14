@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: road-accident-ai-platform
+    env: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true

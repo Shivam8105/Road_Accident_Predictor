@@ -1,0 +1,102 @@
+[
+  {
+    "feature": "latitude",
+    "importance": 0.12394
+  },
+  {
+    "feature": "longitude",
+    "importance": 0.12358
+  },
+  {
+    "feature": "temperature",
+    "importance": 0.10214
+  },
+  {
+    "feature": "hour",
+    "importance": 0.09697
+  },
+  {
+    "feature": "lanes",
+    "importance": 0.06846
+  },
+  {
+    "feature": "traffic_signal",
+    "importance": 0.02562
+  },
+  {
+    "feature": "is_peak_hour",
+    "importance": 0.01941
+  },
+  {
+    "feature": "road_type_highway",
+    "importance": 0.01932
+  },
+  {
+    "feature": "traffic_density_medium",
+    "importance": 0.01909
+  },
+  {
+    "feature": "road_type_urban",
+    "importance": 0.01899
+  },
+  {
+    "feature": "road_type_rural",
+    "importance": 0.0189
+  },
+  {
+    "feature": "traffic_density_high",
+    "importance": 0.01887
+  },
+  {
+    "feature": "traffic_density_low",
+    "importance": 0.0181
+  },
+  {
+    "feature": "cause_overspeeding",
+    "importance": 0.01648
+  },
+  {
+    "feature": "cause_drunk driving",
+    "importance": 0.01589
+  },
+  {
+    "feature": "cause_poor road",
+    "importance": 0.01574
+  },
+  {
+    "feature": "cause_weather",
+    "importance": 0.01569
+  },
+  {
+    "feature": "day_of_week_Friday",
+    "importance": 0.01455
+  },
+  {
+    "feature": "day_of_week_Thursday",
+    "importance": 0.01436
+  },
+  {
+    "feature": "day_of_week_Monday",
+    "importance": 0.01425
+  },
+  {
+    "feature": "weather_rain",
+    "importance": 0.01407
+  },
+  {
+    "feature": "visibility_low",
+    "importance": 0.01391
+  },
+  {
+    "feature": "day_of_week_Tuesday",
+    "importance": 0.01387
+  },
+  {
+    "feature": "is_weekend",
+    "importance": 0.01379
+  },
+  {
+    "feature": "day_of_week_Wednesday",
+    "importance": 0.0137
+  }
+]
