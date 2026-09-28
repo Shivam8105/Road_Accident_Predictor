@@ -65,101 +65,101 @@ export const Dashboard: React.FC = () => {
   const SEVERITY_COLORS = {
     minor: '#10b981', // Emerald
     major: '#f59e0b', // Amber
-    fatal: '#ef4444'  // Rose
+    fatal: '#f43f5e'  // Rose
   };
 
   return (
-    <div className="space-y-8 py-4">
+    <div className="space-y-6 py-2">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-white">Accident Analytics Dashboard</h1>
-          <p className="text-xs text-gray-400 font-medium">
-            Primary Dataset 1 Overview — Indian Roads Historical Distribution (20,000 Records)
+          <h1 className="text-2xl font-bold text-slate-100 tracking-tight">Accident Analytics Dashboard</h1>
+          <p className="text-xs text-slate-400 mt-1">
+            Dataset 1 Overview — Indian Roads Historical Distribution (20,000 Records)
           </p>
         </div>
         <button
           onClick={fetchDashboardData}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl glass-card text-xs font-semibold text-gray-300 hover:text-white hover:border-cyan-500/40 cursor-pointer w-fit"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700/80 cursor-pointer w-fit transition-colors"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Refresh Analytics</span>
+          <span>Refresh Data</span>
         </button>
       </div>
 
       {/* KPI CARDS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        <div className="glass-card p-5 rounded-2xl border border-gray-800">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-xs font-semibold">Total Accidents</span>
-            <AlertTriangle className="w-4 h-4 text-cyan-400" />
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+        <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-medium">Total Accidents</span>
+            <AlertTriangle className="w-4 h-4 text-indigo-400" />
           </div>
-          <div className="text-2xl lg:text-3xl font-black text-white">{kpis.total_accidents.toLocaleString()}</div>
-          <div className="text-[11px] text-gray-400 mt-1">Dataset 1 total records</div>
+          <div className="text-2xl font-bold text-slate-100">{kpis.total_accidents.toLocaleString()}</div>
+          <div className="text-[11px] text-slate-400">Dataset 1 records</div>
         </div>
 
-        <div className="glass-card p-5 rounded-2xl border border-emerald-500/20">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-xs font-semibold text-emerald-400">Minor Severity</span>
+        <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-medium text-emerald-400">Minor Severity</span>
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
           </div>
-          <div className="text-2xl lg:text-3xl font-black text-emerald-400">{kpis.minor_accidents.toLocaleString()}</div>
-          <div className="text-[11px] text-gray-400 mt-1">
+          <div className="text-2xl font-bold text-emerald-400">{kpis.minor_accidents.toLocaleString()}</div>
+          <div className="text-[11px] text-slate-400">
             {((kpis.minor_accidents / kpis.total_accidents) * 100).toFixed(1)}% of total
           </div>
         </div>
 
-        <div className="glass-card p-5 rounded-2xl border border-amber-500/20">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-xs font-semibold text-amber-400">Major Severity</span>
+        <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-medium text-amber-400">Major Severity</span>
             <AlertTriangle className="w-4 h-4 text-amber-400" />
           </div>
-          <div className="text-2xl lg:text-3xl font-black text-amber-400">{kpis.major_accidents.toLocaleString()}</div>
-          <div className="text-[11px] text-gray-400 mt-1">
+          <div className="text-2xl font-bold text-amber-400">{kpis.major_accidents.toLocaleString()}</div>
+          <div className="text-[11px] text-slate-400">
             {((kpis.major_accidents / kpis.total_accidents) * 100).toFixed(1)}% of total
           </div>
         </div>
 
-        <div className="glass-card p-5 rounded-2xl border border-rose-500/20">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-xs font-semibold text-rose-400">Fatal Severity</span>
+        <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-medium text-rose-400">Fatal Severity</span>
             <Skull className="w-4 h-4 text-rose-400" />
           </div>
-          <div className="text-2xl lg:text-3xl font-black text-rose-400">{kpis.fatal_accidents.toLocaleString()}</div>
-          <div className="text-[11px] text-rose-300 font-semibold mt-1">
+          <div className="text-2xl font-bold text-rose-400">{kpis.fatal_accidents.toLocaleString()}</div>
+          <div className="text-[11px] text-rose-400 font-medium">
             {kpis.fatal_percentage}% Fatal Rate
           </div>
         </div>
 
-        <div className="glass-card p-5 rounded-2xl border border-indigo-500/20 col-span-2 md:col-span-1">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
-            <span className="text-xs font-semibold text-indigo-400">Geographic Spread</span>
+        <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-1 col-span-2 md:col-span-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-medium text-indigo-400">Geographic Coverage</span>
             <Building2 className="w-4 h-4 text-indigo-400" />
           </div>
-          <div className="text-2xl lg:text-3xl font-black text-white">{kpis.total_cities} <span className="text-sm font-medium text-gray-400">Cities</span></div>
-          <div className="text-[11px] text-gray-400 mt-1">{kpis.total_states} States Covered</div>
+          <div className="text-2xl font-bold text-slate-100">{kpis.total_cities} <span className="text-xs font-normal text-slate-400">Cities</span></div>
+          <div className="text-[11px] text-slate-400">{kpis.total_states} States Covered</div>
         </div>
       </div>
 
       {/* CHARTS GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* City Breakdown Stacked Bar Chart */}
-        <div className="glass-card p-6 rounded-2xl space-y-4">
+        <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-cyan-400" />
+            <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-indigo-400" />
               <span>Top Cities by Severity Breakdown</span>
             </h3>
-            <span className="text-xs text-gray-400">Accident Count</span>
+            <span className="text-xs text-slate-400">Accident Count</span>
           </div>
 
-          <div className="h-72 w-full">
+          <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={cityData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <XAxis dataKey="city" stroke="#64748b" fontSize={11} />
                 <YAxis stroke="#64748b" fontSize={11} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '12px' }}
+                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.5rem', fontSize: '12px' }}
                 />
                 <Bar dataKey="minor" stackId="a" fill={SEVERITY_COLORS.minor} name="Minor" />
                 <Bar dataKey="major" stackId="a" fill={SEVERITY_COLORS.major} name="Major" />
@@ -170,16 +170,16 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Weather Distribution Donut Chart */}
-        <div className="glass-card p-6 rounded-2xl space-y-4">
+        <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-amber-400" />
+            <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-amber-400" />
               <span>Weather Conditions Breakdown</span>
             </h3>
-            <span className="text-xs text-gray-400">Distribution</span>
+            <span className="text-xs text-slate-400">Distribution</span>
           </div>
 
-          <div className="h-72 w-full flex items-center justify-center">
+          <div className="h-64 w-full flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -188,19 +188,19 @@ export const Dashboard: React.FC = () => {
                   nameKey="weather"
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={95}
-                  paddingAngle={5}
+                  innerRadius={55}
+                  outerRadius={90}
+                  paddingAngle={4}
                 >
                   {weatherData.map((_, index) => (
                     <Cell 
                       key={`cell-${index}`} 
-                      fill={['#06b6d4', '#f59e0b', '#ef4444', '#8b5cf6', '#10b981'][index % 5]} 
+                      fill={['#6366f1', '#f59e0b', '#f43f5e', '#8b5cf6', '#10b981'][index % 5]} 
                     />
                   ))}
                 </Pie>
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '12px' }}
+                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.5rem', fontSize: '12px' }}
                 />
                 <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '12px' }} />
               </PieChart>

@@ -76,63 +76,63 @@ export const PredictSeverity: React.FC<PredictSeverityProps> = ({ setActiveTab, 
     switch (severity) {
       case 'MINOR':
         return {
-          color: 'text-emerald-400 border-emerald-500/40 bg-emerald-950/60 shadow-emerald-500/20',
+          color: 'text-emerald-400 border-emerald-800 bg-emerald-950/60 shadow-lg shadow-emerald-600/20',
           icon: <ShieldCheck className="w-8 h-8 text-emerald-400" />,
           desc: 'Low structural impact predicted. Minor injuries expected.'
         };
       case 'MAJOR':
         return {
-          color: 'text-amber-400 border-amber-500/40 bg-amber-950/60 shadow-amber-500/20',
+          color: 'text-amber-400 border-amber-800 bg-amber-950/60 shadow-lg shadow-amber-600/20',
           icon: <AlertTriangle className="w-8 h-8 text-amber-400" />,
-          desc: 'High impact collision likely. Significant medical intervention needed.'
+          desc: 'High impact collision likely. Significant medical intervention required.'
         };
       case 'FATAL':
         return {
-          color: 'text-rose-400 border-rose-500/40 bg-rose-950/60 shadow-rose-500/20',
-          icon: <Skull className="w-8 h-8 text-rose-400" />,
+          color: 'text-red-400 border-red-800 bg-red-950/60 shadow-lg shadow-red-600/30',
+          icon: <Skull className="w-8 h-8 text-red-400" />,
           desc: 'Critical risk of life-threatening severity. Emergency priority.'
         };
       default:
         return {
-          color: 'text-cyan-400 border-cyan-500/40 bg-cyan-950/60',
-          icon: <BrainCircuit className="w-8 h-8 text-cyan-400" />,
+          color: 'text-slate-300 border-white/10 bg-black/60',
+          icon: <BrainCircuit className="w-8 h-8 text-red-500" />,
           desc: 'Prediction output generated.'
         };
     }
   };
 
   return (
-    <div className="space-y-8 py-4">
-      <div>
-        <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
-          <BrainCircuit className="w-8 h-8 text-cyan-400" />
-          <span>Accident Severity Prediction</span>
+    <div className="space-y-6 py-2">
+      <div className="border-b border-white/10 pb-4">
+        <h1 className="font-heading text-2xl font-bold text-white flex items-center gap-2.5 tracking-tight">
+          <BrainCircuit className="w-6 h-6 text-red-500" />
+          <span>Accident Severity Predictor</span>
         </h1>
-        <p className="text-xs text-gray-400 font-medium">
-          Multi-class severity classification powered by Dataset 1 ML Pipeline (Minor / Major / Fatal)
+        <p className="text-xs text-slate-400 mt-1">
+          Multiclass severity classification powered by Dataset 1 ML Pipeline (Minor / Major / Fatal)
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* INPUT FORM */}
-        <form onSubmit={handlePredict} className="lg:col-span-7 glass-card p-6 rounded-2xl space-y-6">
-          <div className="flex items-center justify-between border-b border-gray-800 pb-4">
-            <h3 className="text-lg font-bold text-white">Scenario Parameters</h3>
-            <span className="text-xs px-2.5 py-1 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800">
-              Data Leakage Protected
+        <form onSubmit={handlePredict} className="lg:col-span-7 glass-card p-6 rounded-3xl border border-red-500/20 space-y-5 shadow-2xl">
+          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <h3 className="font-heading text-base font-bold text-white">Scenario Input Parameters</h3>
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-red-950 text-red-300 border border-red-800">
+              ML Inference Pipeline
             </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             {/* Model Selection */}
             <div className="col-span-2">
-              <label className="block text-gray-300 font-semibold mb-1">Select ML Classifier Model</label>
+              <label className="block text-slate-300 font-semibold mb-1">Select Classifier Model</label>
               <select
                 value={formData.model_name}
                 onChange={(e) => handleChange('model_name', e.target.value)}
-                className="w-full bg-slate-900/90 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-200 focus:border-cyan-500 focus:outline-none"
+                className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2.5 text-white font-medium focus:border-red-500 focus:outline-none"
               >
-                <option value="Random Forest">Random Forest (🏆 Selected Best Model)</option>
+                <option value="Random Forest">Random Forest (Selected Primary Model)</option>
                 <option value="Logistic Regression">Logistic Regression (Interpretable Baseline)</option>
                 <option value="Decision Tree">Decision Tree Classifier</option>
                 <option value="XGBoost">XGBoost Classifier</option>
@@ -142,11 +142,11 @@ export const PredictSeverity: React.FC<PredictSeverityProps> = ({ setActiveTab, 
 
             {/* City & State */}
             <div>
-              <label className="block text-gray-300 font-semibold mb-1">City</label>
+              <label className="block text-slate-300 font-semibold mb-1">City</label>
               <select
                 value={formData.city}
                 onChange={(e) => handleChange('city', e.target.value)}
-                className="w-full bg-slate-900/90 border border-gray-700 rounded-xl px-3 py-2 text-gray-200 focus:border-cyan-500 focus:outline-none"
+                className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-white font-medium focus:border-red-500 focus:outline-none"
               >
                 {['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata', 'Hyderabad', 'Pune', 'Ahmedabad'].map(c => (
                   <option key={c} value={c}>{c}</option>
@@ -155,11 +155,11 @@ export const PredictSeverity: React.FC<PredictSeverityProps> = ({ setActiveTab, 
             </div>
 
             <div>
-              <label className="block text-gray-300 font-semibold mb-1">State</label>
+              <label className="block text-slate-300 font-semibold mb-1">State</label>
               <select
                 value={formData.state}
                 onChange={(e) => handleChange('state', e.target.value)}
-                className="w-full bg-slate-900/90 border border-gray-700 rounded-xl px-3 py-2 text-gray-200 focus:border-cyan-500 focus:outline-none"
+                className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-white font-medium focus:border-red-500 focus:outline-none"
               >
                 {['Maharashtra', 'Delhi', 'Karnataka', 'Tamil Nadu', 'West Bengal', 'Telangana', 'Gujarat'].map(s => (
                   <option key={s} value={s}>{s}</option>
@@ -169,11 +169,11 @@ export const PredictSeverity: React.FC<PredictSeverityProps> = ({ setActiveTab, 
 
             {/* Weather & Visibility */}
             <div>
-              <label className="block text-gray-300 font-semibold mb-1">Weather Condition</label>
+              <label className="block text-slate-300 font-semibold mb-1">Weather Condition</label>
               <select
                 value={formData.weather}
                 onChange={(e) => handleChange('weather', e.target.value)}
-                className="w-full bg-slate-900/90 border border-gray-700 rounded-xl px-3 py-2 text-gray-200 focus:border-cyan-500 focus:outline-none"
+                className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-white font-medium focus:border-red-500 focus:outline-none"
               >
                 <option value="clear">Clear</option>
                 <option value="rain">Rain</option>
@@ -182,11 +182,11 @@ export const PredictSeverity: React.FC<PredictSeverityProps> = ({ setActiveTab, 
             </div>
 
             <div>
-              <label className="block text-gray-300 font-semibold mb-1">Visibility Level</label>
+              <label className="block text-slate-300 font-semibold mb-1">Visibility Level</label>
               <select
                 value={formData.visibility}
                 onChange={(e) => handleChange('visibility', e.target.value)}
-                className="w-full bg-slate-900/90 border border-gray-700 rounded-xl px-3 py-2 text-gray-200 focus:border-cyan-500 focus:outline-none"
+                className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-white font-medium focus:border-red-500 focus:outline-none"
               >
                 <option value="high">High Visibility</option>
                 <option value="medium">Medium Visibility</option>
@@ -196,222 +196,198 @@ export const PredictSeverity: React.FC<PredictSeverityProps> = ({ setActiveTab, 
 
             {/* Road Type & Lanes */}
             <div>
-              <label className="block text-gray-300 font-semibold mb-1">Road Infrastructure Type</label>
+              <label className="block text-slate-300 font-semibold mb-1">Road Infrastructure Type</label>
               <select
                 value={formData.road_type}
                 onChange={(e) => handleChange('road_type', e.target.value)}
-                className="w-full bg-slate-900/90 border border-gray-700 rounded-xl px-3 py-2 text-gray-200 focus:border-cyan-500 focus:outline-none"
+                className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-white font-medium focus:border-red-500 focus:outline-none"
               >
-                <option value="highway">Highway</option>
-                <option value="urban">Urban Arterial</option>
+                <option value="highway">National / State Highway</option>
+                <option value="expressway">Expressway</option>
+                <option value="urban">Urban Street</option>
                 <option value="rural">Rural Road</option>
+                <option value="intersection">Junction / Intersection</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-gray-300 font-semibold mb-1">Number of Lanes</label>
-              <select
+              <label className="block text-slate-300 font-semibold mb-1">Number of Lanes ({formData.lanes})</label>
+              <input
+                type="range"
+                min="1"
+                max="6"
                 value={formData.lanes}
                 onChange={(e) => handleChange('lanes', parseInt(e.target.value))}
-                className="w-full bg-slate-900/90 border border-gray-700 rounded-xl px-3 py-2 text-gray-200 focus:border-cyan-500 focus:outline-none"
-              >
-                {[1, 2, 3, 4, 6].map(l => (
-                  <option key={l} value={l}>{l} Lane{l > 1 ? 's' : ''}</option>
-                ))}
-              </select>
+                className="w-full accent-red-500 cursor-pointer mt-1"
+              />
             </div>
 
-            {/* Traffic Density & Cause */}
+            {/* Hour of Day & Day of Week */}
             <div>
-              <label className="block text-gray-300 font-semibold mb-1">Traffic Density</label>
-              <select
-                value={formData.traffic_density}
-                onChange={(e) => handleChange('traffic_density', e.target.value)}
-                className="w-full bg-slate-900/90 border border-gray-700 rounded-xl px-3 py-2 text-gray-200 focus:border-cyan-500 focus:outline-none"
-              >
-                <option value="low">Low Density</option>
-                <option value="medium">Medium Density</option>
-                <option value="high">High Density</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-gray-300 font-semibold mb-1">Accident Primary Cause</label>
-              <select
-                value={formData.cause}
-                onChange={(e) => handleChange('cause', e.target.value)}
-                className="w-full bg-slate-900/90 border border-gray-700 rounded-xl px-3 py-2 text-gray-200 focus:border-cyan-500 focus:outline-none"
-              >
-                <option value="overspeeding">Overspeeding</option>
-                <option value="distraction">Distraction / Mobile</option>
-                <option value="weather">Weather Hazards</option>
-                <option value="drunk_driving">Drunk Driving</option>
-                <option value="mechanical_failure">Mechanical Failure</option>
-              </select>
-            </div>
-
-            {/* Time & Day */}
-            <div>
-              <label className="block text-gray-300 font-semibold mb-1">Time of Day: {formData.hour}:00</label>
+              <label className="block text-slate-300 font-semibold mb-1">Hour of Day ({formData.hour}:00)</label>
               <input
                 type="range"
                 min="0"
                 max="23"
                 value={formData.hour}
-                onChange={(e) => handleChange('hour', e.target.value)}
-                className="w-full accent-cyan-500 cursor-pointer"
+                onChange={(e) => handleChange('hour', parseInt(e.target.value))}
+                className="w-full accent-red-500 cursor-pointer mt-1"
               />
             </div>
 
             <div>
-              <label className="block text-gray-300 font-semibold mb-1">Day of Week</label>
+              <label className="block text-slate-300 font-semibold mb-1">Day of Week</label>
               <select
                 value={formData.day_of_week}
                 onChange={(e) => handleChange('day_of_week', e.target.value)}
-                className="w-full bg-slate-900/90 border border-gray-700 rounded-xl px-3 py-2 text-gray-200 focus:border-cyan-500 focus:outline-none"
+                className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-white font-medium focus:border-red-500 focus:outline-none"
               >
                 {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => (
                   <option key={d} value={d}>{d}</option>
                 ))}
               </select>
             </div>
+
+            {/* Traffic Density & Primary Cause */}
+            <div>
+              <label className="block text-slate-300 font-semibold mb-1">Traffic Density</label>
+              <select
+                value={formData.traffic_density}
+                onChange={(e) => handleChange('traffic_density', e.target.value)}
+                className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-white font-medium focus:border-red-500 focus:outline-none"
+              >
+                <option value="low">Low Traffic</option>
+                <option value="medium">Moderate Traffic</option>
+                <option value="high">Heavy / Congested</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-slate-300 font-semibold mb-1">Primary Cause</label>
+              <select
+                value={formData.cause}
+                onChange={(e) => handleChange('cause', e.target.value)}
+                className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-white font-medium focus:border-red-500 focus:outline-none"
+              >
+                <option value="overspeeding">Over-Speeding</option>
+                <option value="drunk_driving">Drunk Driving</option>
+                <option value="weather_conditions">Adverse Weather</option>
+                <option value="mechanical_breakdown">Mechanical Breakdown</option>
+                <option value="distracted_driving">Distracted Driving</option>
+                <option value="sudden_braking">Sudden Braking</option>
+              </select>
+            </div>
+
+            {/* Temperature */}
+            <div className="col-span-2">
+              <label className="block text-slate-300 font-semibold mb-1">Ambient Temperature ({formData.temperature}°C)</label>
+              <input
+                type="range"
+                min="5"
+                max="48"
+                value={formData.temperature}
+                onChange={(e) => handleChange('temperature', parseInt(e.target.value))}
+                className="w-full accent-red-500 cursor-pointer mt-1"
+              />
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all"
+            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs shadow-lg shadow-red-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.01]"
           >
-            {loading ? (
-              <>
-                <RefreshCw className="w-5 h-5 animate-spin" />
-                <span>Running Trained Model Pipeline...</span>
-              </>
-            ) : (
-              <>
-                <BrainCircuit className="w-5 h-5" />
-                <span>Generate Severity Prediction</span>
-              </>
-            )}
+            {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <BrainCircuit className="w-4 h-4" />}
+            <span>Run Severity Prediction Engine</span>
           </button>
         </form>
 
-        {/* OUTPUT PANEL */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="glass-card p-6 rounded-2xl border border-gray-800 space-y-6 min-h-[420px] flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between border-b border-gray-800 pb-4 mb-4">
-                <h3 className="text-lg font-bold text-white">Prediction Output</h3>
-                {result && (
-                  <span className="text-[11px] text-gray-400 font-medium">
-                    Engine: <strong className="text-cyan-400">{result.model_used}</strong>
-                  </span>
-                )}
+        {/* PREDICTION RESULT CARD */}
+        <div className="lg:col-span-5 space-y-4">
+          {result ? (
+            <div className="glass-card p-6 rounded-3xl border border-red-500/30 space-y-5 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <span className="text-xs font-bold text-slate-400">Prediction Output</span>
+                <span className="text-[11px] font-mono text-red-400 font-bold">{result.model_used}</span>
               </div>
 
-              {!result && !loading && (
-                <div className="flex flex-col items-center justify-center py-12 text-center text-gray-400 space-y-3">
-                  <BrainCircuit className="w-12 h-12 text-gray-600" />
-                  <p className="text-sm font-medium">
-                    Adjust scenario parameters and click "Generate Severity Prediction" to evaluate the trained model.
-                  </p>
+              {/* Severity Banner */}
+              <div className={`p-4 rounded-2xl border flex items-start gap-3.5 ${getSeverityBadge(result.predicted_severity).color}`}>
+                <div className="shrink-0 mt-0.5">
+                  {getSeverityBadge(result.predicted_severity).icon}
                 </div>
-              )}
+                <div>
+                  <div className="text-xs font-bold uppercase opacity-80">Predicted Class</div>
+                  <div className="font-heading text-2xl font-black tracking-tight">{result.predicted_severity} SEVERITY</div>
+                  <p className="text-xs mt-1 leading-relaxed opacity-90">{getSeverityBadge(result.predicted_severity).desc}</p>
+                </div>
+              </div>
 
-              {result && (
-                <div className="space-y-6">
-                  {/* PREDICTED SEVERITY BADGE */}
-                  {(() => {
-                    const badge = getSeverityBadge(result.predicted_severity);
-                    return (
-                      <div className={`p-5 rounded-2xl border ${badge.color} shadow-lg flex items-center gap-4`}>
-                        {badge.icon}
-                        <div>
-                          <div className="text-xs uppercase tracking-wider font-semibold opacity-80">Predicted Severity Class</div>
-                          <div className="text-3xl font-black">{result.predicted_severity}</div>
-                          <div className="text-xs opacity-90 mt-0.5">{badge.desc}</div>
-                        </div>
-                      </div>
-                    );
-                  })()}
+              {/* Probability Bars */}
+              <div className="space-y-3 pt-2">
+                <h4 className="text-xs font-bold text-white">Model Class Probabilities</h4>
 
-                  {/* PROBABILITY DISTRIBUTION BARS */}
-                  <div className="space-y-3 pt-2">
-                    <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Model Class Probabilities</h4>
-
-                    {/* Minor Bar */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs font-semibold">
-                        <span className="text-emerald-400">Minor Severity</span>
-                        <span className="text-emerald-400 font-bold">{result.probabilities.minor}%</span>
-                      </div>
-                      <div className="w-full bg-slate-900 rounded-full h-3 overflow-hidden border border-gray-800">
-                        <div 
-                          className="bg-emerald-500 h-full rounded-full transition-all duration-500 shadow-sm"
-                          style={{ width: `${result.probabilities.minor}%` }}
-                        />
-                      </div>
+                <div className="space-y-2.5 text-xs">
+                  <div>
+                    <div className="flex justify-between text-slate-300 font-bold mb-1">
+                      <span>Minor Injury Probability</span>
+                      <span className="font-mono text-emerald-400">{result.probabilities.minor}%</span>
                     </div>
-
-                    {/* Major Bar */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs font-semibold">
-                        <span className="text-amber-400">Major Severity</span>
-                        <span className="text-amber-400 font-bold">{result.probabilities.major}%</span>
-                      </div>
-                      <div className="w-full bg-slate-900 rounded-full h-3 overflow-hidden border border-gray-800">
-                        <div 
-                          className="bg-amber-500 h-full rounded-full transition-all duration-500 shadow-sm"
-                          style={{ width: `${result.probabilities.major}%` }}
-                        />
-                      </div>
+                    <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-white/10">
+                      <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${result.probabilities.minor}%` }} />
                     </div>
+                  </div>
 
-                    {/* Fatal Bar */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs font-semibold">
-                        <span className="text-rose-400">Fatal Severity</span>
-                        <span className="text-rose-400 font-bold">{result.probabilities.fatal}%</span>
-                      </div>
-                      <div className="w-full bg-slate-900 rounded-full h-3 overflow-hidden border border-gray-800">
-                        <div 
-                          className="bg-rose-500 h-full rounded-full transition-all duration-500 shadow-sm"
-                          style={{ width: `${result.probabilities.fatal}%` }}
-                        />
-                      </div>
+                  <div>
+                    <div className="flex justify-between text-slate-300 font-bold mb-1">
+                      <span>Major Injury Probability</span>
+                      <span className="font-mono text-amber-400">{result.probabilities.major}%</span>
+                    </div>
+                    <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-white/10">
+                      <div className="bg-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${result.probabilities.major}%` }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-slate-300 font-bold mb-1">
+                      <span>Fatal Severity Probability</span>
+                      <span className="font-mono text-red-400">{result.probabilities.fatal}%</span>
+                    </div>
+                    <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-white/10">
+                      <div className="bg-red-500 h-full rounded-full transition-all duration-500" style={{ width: `${result.probabilities.fatal}%` }} />
                     </div>
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
 
-            {/* ACTION FOOTER */}
-            {result && (
-              <div className="pt-4 border-t border-gray-800 flex flex-col gap-2">
-                <button
-                  onClick={() => setActiveTab('explain')}
-                  className="w-full py-2.5 px-4 rounded-xl bg-purple-950 hover:bg-purple-900 border border-purple-700/60 text-purple-300 font-semibold text-xs flex items-center justify-between cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <HelpCircle className="w-4 h-4 text-purple-400" />
-                    <span>Explain Why Model Made This Prediction (SHAP)</span>
-                  </span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-
+              {/* Action Jump Buttons */}
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10 text-xs">
                 <button
                   onClick={() => setActiveTab('whatif')}
-                  className="w-full py-2.5 px-4 rounded-xl bg-indigo-950 hover:bg-indigo-900 border border-indigo-700/60 text-indigo-300 font-semibold text-xs flex items-center justify-between cursor-pointer"
+                  className="py-2.5 px-3 rounded-xl bg-white/5 hover:bg-red-600/20 text-slate-200 hover:text-white font-bold flex items-center justify-between transition-colors border border-white/10"
                 >
-                  <span className="flex items-center gap-2">
-                    <SlidersHorizontal className="w-4 h-4 text-indigo-400" />
-                    <span>Simulate What-If Changes for This Scenario</span>
-                  </span>
-                  <ChevronRight className="w-4 h-4" />
+                  <span className="flex items-center gap-1.5"><SlidersHorizontal className="w-3.5 h-3.5 text-red-400" /> What-If</span>
+                  <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('explain')}
+                  className="py-2.5 px-3 rounded-xl bg-white/5 hover:bg-red-600/20 text-slate-200 hover:text-white font-bold flex items-center justify-between transition-colors border border-white/10"
+                >
+                  <span className="flex items-center gap-1.5"><HelpCircle className="w-3.5 h-3.5 text-red-400" /> SHAP XAI</span>
+                  <ChevronRight className="w-3.5 h-3.5 opacity-60" />
                 </button>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="glass-card p-8 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center space-y-3 min-h-[380px]">
+              <BrainCircuit className="w-12 h-12 text-slate-700 animate-pulse" />
+              <div className="font-heading text-base font-bold text-white">No Prediction Generated Yet</div>
+              <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
+                Select your scenario inputs on the left and click "Run Severity Prediction Engine".
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

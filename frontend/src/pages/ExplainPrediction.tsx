@@ -58,46 +58,46 @@ export const ExplainPrediction: React.FC = () => {
   if (loading || !shapData) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-3 text-purple-400 font-medium">
-          <RefreshCw className="w-6 h-6 animate-spin" />
-          <span>Computing SHAP Feature Attribution...</span>
+        <div className="flex items-center gap-3 text-slate-300 font-medium text-xs">
+          <RefreshCw className="w-5 h-5 animate-spin text-indigo-400" />
+          <span>Computing SHAP feature attributions...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 py-4">
-      <div>
-        <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
-          <HelpCircle className="w-8 h-8 text-purple-400" />
-          <span>SHAP Explainable AI (XAI) Analysis</span>
+    <div className="space-y-6 py-2">
+      <div className="border-b border-slate-800 pb-4">
+        <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2.5 tracking-tight">
+          <HelpCircle className="w-6 h-6 text-indigo-400" />
+          <span>SHAP Feature Attribution Analysis</span>
         </h1>
-        <p className="text-xs text-gray-400 font-medium">
-          Feature importance & individual prediction explanations computed directly from model coefficients and SHAP values.
+        <p className="text-xs text-slate-400 mt-1">
+          Feature importance & individual prediction attributions computed directly from model coefficients and SHAP values.
         </p>
       </div>
 
       {/* INDIVIDUAL EXPLANATION SECTION */}
-      <div className="glass-card p-6 rounded-2xl space-y-6">
-        <div className="flex items-center justify-between border-b border-gray-800 pb-4">
+      <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-5">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div>
-            <h3 className="text-lg font-bold text-white">Why Was This Prediction Made?</h3>
-            <p className="text-xs text-gray-400">Individual feature attribution for the current accident scenario</p>
+            <h3 className="text-sm font-semibold text-slate-100">Local Prediction Explanation</h3>
+            <p className="text-xs text-slate-400">Feature impact scores for the active scenario</p>
           </div>
-          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-purple-950 text-purple-300 border border-purple-800">
+          <span className="text-[11px] font-medium px-2.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
             Model: {shapData.model_used}
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* INCREASING FACTORS (Positive SHAP) */}
-          <div className="p-5 rounded-xl bg-rose-950/30 border border-rose-500/30 space-y-3">
-            <h4 className="text-sm font-bold text-rose-400 flex items-center gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* INCREASING FACTORS */}
+          <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5">
+            <h4 className="text-xs font-semibold text-rose-400 flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
               <span>Factors Increasing Predicted Severity</span>
             </h4>
-            <ul className="space-y-2 text-xs text-gray-300">
+            <ul className="space-y-1.5 text-xs text-slate-300">
               {shapData.increasing_factors.map((factor, idx) => (
                 <li key={idx} className="flex items-start gap-2">
                   <span className="text-rose-400 font-bold">•</span>
@@ -107,13 +107,13 @@ export const ExplainPrediction: React.FC = () => {
             </ul>
           </div>
 
-          {/* DECREASING FACTORS (Negative SHAP) */}
-          <div className="p-5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 space-y-3">
-            <h4 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
+          {/* DECREASING FACTORS */}
+          <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5">
+            <h4 className="text-xs font-semibold text-emerald-400 flex items-center gap-2">
               <TrendingDown className="w-4 h-4" />
-              <span>Factors Decreasing / Moderating Severity</span>
+              <span>Factors Decreasing Predicted Severity</span>
             </h4>
-            <ul className="space-y-2 text-xs text-gray-300">
+            <ul className="space-y-1.5 text-xs text-slate-300">
               {shapData.decreasing_factors.map((factor, idx) => (
                 <li key={idx} className="flex items-start gap-2">
                   <span className="text-emerald-400 font-bold">•</span>
@@ -125,20 +125,20 @@ export const ExplainPrediction: React.FC = () => {
         </div>
 
         {/* FEATURE ATTRIBUTION IMPACT BARS */}
-        <div className="space-y-3 pt-2">
-          <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Top Feature Impact Values</h4>
-          <div className="space-y-2">
+        <div className="space-y-2 pt-1">
+          <h4 className="text-xs font-semibold text-slate-300">Feature Contribution Impact Scores</h4>
+          <div className="space-y-1.5">
             {shapData.top_contributions.map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between text-xs p-2.5 rounded-lg bg-slate-900/80 border border-gray-800">
-                <span className="font-mono text-gray-300">
+              <div key={idx} className="flex items-center justify-between text-xs p-2.5 rounded-lg bg-slate-950/80 border border-slate-800">
+                <span className="font-mono text-slate-300">
                   {item.feature.replace('cat__', '').replace('num__', '').replace('_', ' ').toUpperCase()}
                 </span>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <span className={`font-bold ${item.impact > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                     {item.impact > 0 ? `+${item.impact}` : item.impact}
                   </span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded font-semibold ${
-                    item.impact > 0 ? 'bg-rose-950 text-rose-300' : 'bg-emerald-950 text-emerald-300'
+                  <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${
+                    item.impact > 0 ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
                   }`}>
                     {item.impact > 0 ? 'High Severity Risk' : 'Risk Moderation'}
                   </span>
@@ -150,18 +150,18 @@ export const ExplainPrediction: React.FC = () => {
       </div>
 
       {/* GLOBAL FEATURE IMPORTANCE CHART */}
-      <div className="glass-card p-6 rounded-2xl space-y-4">
-        <div className="flex items-center justify-between border-b border-gray-800 pb-4">
+      <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-3">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <BarChart2 className="w-5 h-5 text-purple-400" />
-              <span>Global Feature Importance Across Dataset 1</span>
+            <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+              <BarChart2 className="w-4 h-4 text-indigo-400" />
+              <span>Global Feature Importance Ranking</span>
             </h3>
-            <p className="text-xs text-gray-400">Features with highest mean absolute impact on accident severity model</p>
+            <p className="text-xs text-slate-400">Features with highest mean impact across Dataset 1</p>
           </div>
         </div>
 
-        <div className="h-80 w-full">
+        <div className="h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={globalShap} layout="vertical" margin={{ top: 10, right: 30, left: 100, bottom: 10 }}>
               <XAxis type="number" stroke="#64748b" fontSize={11} />
@@ -172,10 +172,10 @@ export const ExplainPrediction: React.FC = () => {
                 fontSize={11} 
                 tickFormatter={(val) => val.replace('cat__', '').replace('num__', '').replace('_', ' ')}
               />
-              <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '12px' }} />
-              <Bar dataKey="importance" name="Global Importance" radius={[0, 6, 6, 0]}>
+              <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.5rem', fontSize: '12px' }} />
+              <Bar dataKey="importance" name="Global Importance" radius={[0, 4, 4, 0]}>
                 {globalShap.map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={['#a855f7', '#8b5cf6', '#6366f1', '#06b6d4', '#10b981'][index % 5]} />
+                  <Cell key={`cell-${index}`} fill={['#6366f1', '#8b5cf6', '#a855f7', '#06b6d4', '#10b981'][index % 5]} />
                 ))}
               </Bar>
             </BarChart>
