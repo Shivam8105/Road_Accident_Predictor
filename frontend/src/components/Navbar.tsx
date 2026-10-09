@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, BrainCircuit, SlidersHorizontal, 
-  HelpCircle, Map, BarChart3, Layers, Award, Home, ArrowRight, Sparkles,
+  HelpCircle, Map, BarChart3, Home, ArrowRight,
   Search, Command, X, Menu
 } from 'lucide-react';
 import gsap from 'gsap';
@@ -32,25 +32,19 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   const navContainerRef = useRef<HTMLDivElement>(null);
 
   const navItems: { id: NavTab; label: string; icon: React.ReactNode; desc: string }[] = [
-    { id: 'home', label: 'Home', icon: <Home className="w-3.5 h-3.5" />, desc: 'System overview & platform features' },
-    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-3.5 h-3.5" />, desc: 'Dataset 1 historical overview KPIs' },
-    { id: 'predict', label: 'Predictor', icon: <BrainCircuit className="w-3.5 h-3.5" />, desc: 'Run multiclass severity classification model' },
-    { id: 'whatif', label: 'What-If', icon: <SlidersHorizontal className="w-3.5 h-3.5" />, desc: 'Simulate hypothetical scenario risk shifts' },
-    { id: 'explain', label: 'XAI (SHAP)', icon: <HelpCircle className="w-3.5 h-3.5" />, desc: 'SHAP feature attribution & explainability' },
-    { id: 'map', label: 'GIS Map', icon: <Map className="w-3.5 h-3.5" />, desc: 'India spatial risk map & city hotspot layers' },
-    { id: 'analytics', label: 'Analytics', icon: <BarChart3 className="w-3.5 h-3.5" />, desc: 'Temporal, weather & road infrastructure trends' },
-    { id: 'detailed', label: 'Factors', icon: <Layers className="w-3.5 h-3.5" />, desc: 'Dataset 2 driver, vehicle & casualty metrics' },
-    { id: 'models', label: 'Models', icon: <Award className="w-3.5 h-3.5" />, desc: '5-model evaluation benchmark & confusion matrix' },
+    { id: 'home', label: 'Home', icon: <Home className="w-3.5 h-3.5" />, desc: 'Platform overview & landing' },
+    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-3.5 h-3.5" />, desc: 'Historical accident overview KPIs' },
+    { id: 'predict', label: 'Predictor', icon: <BrainCircuit className="w-3.5 h-3.5" />, desc: 'Tuned Logistic Regression model inference' },
+    { id: 'whatif', label: 'What-If', icon: <SlidersHorizontal className="w-3.5 h-3.5" />, desc: 'Scenario shift risk simulation' },
+    { id: 'explain', label: 'XAI (SHAP)', icon: <HelpCircle className="w-3.5 h-3.5" />, desc: 'SHAP feature impact explanations' },
+    { id: 'map', label: 'GIS Map', icon: <Map className="w-3.5 h-3.5" />, desc: 'India spatial heatmap & city risk map' },
+    { id: 'analytics', label: 'Analytics', icon: <BarChart3 className="w-3.5 h-3.5" />, desc: 'City, state, weather & cause trends' },
   ];
 
-  // Scroll detection for navbar shrink effect
+  // Scroll listener for sticky header background
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 20) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
+      setIsScrolled(window.scrollY > 20);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -72,21 +66,26 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // GSAP animation on active tab change
-  useEffect(() => {
-    if (!navContainerRef.current) return;
+  // GSAP sliding pill indicator calculation
+  const updatePill = () => {
+    if (!navContainerRef.current || !activePillRef.current) return;
     const activeBtn = navContainerRef.current.querySelector(`[data-tab-id="${activeTab}"]`) as HTMLElement;
-    if (activeBtn && activePillRef.current) {
-      const containerRect = navContainerRef.current.getBoundingClientRect();
-      const btnRect = activeBtn.getBoundingClientRect();
-
-      gsap.to(activePillRef.current, {
-        x: btnRect.left - containerRect.left,
-        width: btnRect.width,
-        duration: 0.35,
-        ease: 'power3.out'
+    if (activeBtn) {
+      requestAnimationFrame(() => {
+        gsap.to(activePillRef.current, {
+          x: activeBtn.offsetLeft,
+          width: activeBtn.offsetWidth,
+          duration: 0.25,
+          ease: 'power2.out'
+        });
       });
     }
+  };
+
+  useEffect(() => {
+    updatePill();
+    window.addEventListener('resize', updatePill);
+    return () => window.removeEventListener('resize', updatePill);
   }, [activeTab]);
 
   const filteredNavItems = navItems.filter(item => 
@@ -103,41 +102,41 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
 
   return (
     <>
-      <header className={`sticky top-0 z-50 transition-all duration-300 ${
+      <header className={`sticky top-0 z-50 transition-colors duration-200 ${
         isScrolled 
-          ? 'bg-[#060609]/95 backdrop-blur-2xl border-b border-red-500/20 shadow-xl shadow-red-600/5 py-2' 
-          : 'bg-[#060609]/85 backdrop-blur-xl border-b border-white/10 py-3'
-      } px-4 lg:px-8`}>
+          ? 'bg-[#090d16]/95 backdrop-blur-md border-b border-slate-800 shadow-md' 
+          : 'bg-[#090d16]/80 backdrop-blur-sm border-b border-slate-800/60'
+      } py-2.5 px-4 lg:px-8`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-          {/* Brand Name: AcciPredict */}
+          {/* BRAND NAME */}
           <div 
             onClick={() => handleSelectTab('home')}
             className="flex items-center gap-2.5 cursor-pointer group shrink-0"
           >
-            <div className="p-2 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white shadow-lg shadow-red-600/30 group-hover:scale-105 transition-transform">
-              <Sparkles className="w-5 h-5 animate-pulse" />
+            <div className="p-2 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+              <BrainCircuit className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <span className="font-heading font-extrabold text-xl tracking-tight text-white">
-                  Acci<span className="text-red-500">Predict</span>
+                  Acci<span className="text-indigo-400">Predict</span>
                 </span>
               </div>
               <p className="text-[10px] text-slate-400 font-medium hidden sm:block">
-                Traffic Accident Severity & Analytics
+                Road Safety & Analytics Platform
               </p>
             </div>
           </div>
 
-          {/* Navigation Tabs (Interactive Pill Container with Sliding GSAP Indicator) */}
+          {/* DESKTOP NAVIGATION TABS */}
           <div 
             ref={navContainerRef}
-            className="hidden md:flex items-center gap-1 bg-white/5 p-1 rounded-full border border-white/10 relative overflow-x-auto scrollbar-none"
+            className="hidden md:flex items-center gap-1 bg-slate-900/90 p-1 rounded-full border border-slate-800 relative overflow-x-auto scrollbar-none"
           >
-            {/* Sliding GSAP Active Pill Background */}
+            {/* Sliding Active Pill */}
             <div 
               ref={activePillRef}
-              className="absolute top-1 bottom-1 rounded-full bg-gradient-to-r from-red-600 to-rose-600 shadow-md shadow-red-600/30 pointer-events-none z-0"
+              className="absolute top-1 bottom-1 rounded-full bg-indigo-600 shadow-sm pointer-events-none z-0"
               style={{ left: 0, width: 0 }}
             />
 
@@ -148,36 +147,36 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                   key={item.id}
                   data-tab-id={item.id}
                   onClick={() => handleSelectTab(item.id)}
-                  className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors duration-200 cursor-pointer ${
-                    isActive ? 'text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors duration-200 cursor-pointer ${
+                    isActive ? 'text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  <span className="transition-transform group-hover:scale-110">{item.icon}</span>
+                  <span>{item.icon}</span>
                   <span>{item.label}</span>
                 </button>
               );
             })}
           </div>
 
-          {/* Right Utilities: Cmd+K Quick Search & Action CTA */}
+          {/* RIGHT UTILITIES & CTA */}
           <div className="flex items-center gap-2">
-            {/* Cmd+K Quick Jump Button */}
+            {/* Quick Search */}
             <button
               onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-slate-300 text-xs font-medium backdrop-blur-md cursor-pointer transition-all hover:scale-105"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-medium cursor-pointer transition-all"
               title="Quick Search (Cmd+K)"
             >
-              <Search className="w-3.5 h-3.5 text-red-400" />
-              <span className="hidden sm:inline">Search</span>
-              <kbd className="hidden lg:inline-flex items-center gap-0.5 text-[9px] font-mono px-1.5 py-0.5 rounded bg-black/40 text-slate-400 border border-white/10">
+              <Search className="w-3.5 h-3.5 text-slate-400" />
+              <span className="hidden sm:inline text-slate-300">Search</span>
+              <kbd className="hidden lg:inline-flex items-center gap-0.5 text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-950 text-slate-400 border border-slate-800">
                 <Command className="w-2.5 h-2.5" />K
               </kbd>
             </button>
 
-            {/* Predict Severity Action CTA */}
+            {/* Predict Severity CTA */}
             <button
               onClick={() => handleSelectTab('predict')}
-              className="hidden lg:flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-bold shadow-lg shadow-red-600/30 transition-all hover:scale-105 cursor-pointer whitespace-nowrap shrink-0"
+              className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer whitespace-nowrap shrink-0"
             >
               <span>Predict Severity</span>
               <ArrowRight className="w-3.5 h-3.5 shrink-0" />
@@ -193,15 +192,15 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
           </div>
         </div>
 
-        {/* Mobile Dropdown Drawer */}
+        {/* MOBILE DROPDOWN DRAWER */}
         {mobileMenuOpen && (
-          <div className="md:hidden pt-3 pb-2 space-y-1 border-t border-white/10 mt-2">
+          <div className="md:hidden pt-3 pb-2 space-y-1 border-t border-white/10 mt-2 bg-[#060609]">
             {navItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => handleSelectTab(item.id)}
                 className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold ${
-                  activeTab === item.id ? 'bg-red-600 text-white' : 'text-slate-300 hover:bg-white/5'
+                  activeTab === item.id ? 'bg-indigo-600 text-white font-bold' : 'text-slate-300 hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -218,9 +217,9 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
       {/* QUICK COMMAND PALETTE MODAL (CMD + K) */}
       {searchOpen && (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-start justify-center pt-20 px-4">
-          <div className="w-full max-w-xl glass-card rounded-3xl border border-red-500/30 overflow-hidden shadow-2xl space-y-3 p-4">
+          <div className="w-full max-w-xl glass-card rounded-3xl border border-indigo-500/30 overflow-hidden shadow-2xl space-y-3 p-4 bg-[#0a0a0f]">
             <div className="flex items-center gap-3 border-b border-white/10 pb-3">
-              <Search className="w-5 h-5 text-red-400 shrink-0" />
+              <Search className="w-5 h-5 text-indigo-400 shrink-0" />
               <input
                 type="text"
                 autoFocus
@@ -229,7 +228,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                 placeholder="Type to search tools, modules, analytics..."
                 className="w-full bg-transparent text-white text-sm focus:outline-none placeholder:text-slate-500 font-medium"
               />
-              <button onClick={() => setSearchOpen(false)} className="text-slate-400 hover:text-white p-1 text-xs">
+              <button onClick={() => setSearchOpen(false)} className="text-slate-400 hover:text-white p-1 text-xs cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -241,18 +240,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                   <div
                     key={item.id}
                     onClick={() => handleSelectTab(item.id)}
-                    className="flex items-center justify-between p-3 rounded-2xl hover:bg-red-600/20 border border-transparent hover:border-red-500/30 cursor-pointer transition-all group"
+                    className="flex items-center justify-between p-3 rounded-2xl hover:bg-indigo-600/20 border border-transparent hover:border-indigo-500/30 cursor-pointer transition-all group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-white/5 group-hover:bg-red-600 text-slate-300 group-hover:text-white transition-colors">
+                      <div className="p-2 rounded-xl bg-white/5 group-hover:bg-indigo-600 text-slate-300 group-hover:text-white transition-colors">
                         {item.icon}
                       </div>
                       <div>
-                        <div className="font-bold text-xs text-white group-hover:text-red-300">{item.label}</div>
+                        <div className="font-bold text-xs text-white group-hover:text-indigo-300">{item.label}</div>
                         <div className="text-[11px] text-slate-400">{item.desc}</div>
                       </div>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-red-400 transition-colors" />
+                    <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition-colors" />
                   </div>
                 ))
               ) : (
@@ -262,7 +261,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
 
             <div className="pt-2 border-t border-white/10 text-[10px] text-slate-500 flex justify-between">
               <span>Press <kbd className="px-1 bg-white/10 rounded">ESC</kbd> to close</span>
-              <span>AcciPredict Quick Navigation</span>
+              <span>AcciPredict Navigation</span>
             </div>
           </div>
         </div>

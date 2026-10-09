@@ -94,6 +94,8 @@ export interface MapAccidentRecord {
   cause: string;
   temperature: number;
   traffic_density: string;
+  location_name?: string;
+  location_address?: string;
 }
 
 export interface MapResponse {

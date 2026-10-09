@@ -5,10 +5,12 @@ import {
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
+import { safeFetchJson, FALLBACK_DATASET2_ANALYTICS } from '../api/client';
+
 export const DetailedAccidentFactors: React.FC = () => {
-  const [data, setData] = useState<Dataset2Analytics | null>(null);
+  const [data, setData] = useState<Dataset2Analytics>(FALLBACK_DATASET2_ANALYTICS);
   const [activeTab, setActiveTab] = useState<'driver' | 'vehicle' | 'road' | 'environment' | 'accident' | 'casualty'>('driver');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchDataset2Analytics();
@@ -17,18 +19,23 @@ export const DetailedAccidentFactors: React.FC = () => {
   const fetchDataset2Analytics = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/dataset2/analytics');
-      if (res.ok) {
-        setData(await res.json());
+      const resData = await safeFetchJson<Dataset2Analytics>(
+        '/api/dataset2/analytics',
+        undefined,
+        FALLBACK_DATASET2_ANALYTICS
+      );
+      if (resData && resData.driver_factors) {
+        setData(resData);
       }
     } catch (e) {
       console.error('Error fetching Dataset 2 analytics:', e);
+      setData(FALLBACK_DATASET2_ANALYTICS);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading || !data) {
+  if (loading && !data) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex items-center gap-3 text-slate-300 font-medium text-xs">
@@ -91,7 +98,7 @@ export const DetailedAccidentFactors: React.FC = () => {
           <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-3">
             <h3 className="text-sm font-semibold text-slate-100">Driver Age Band Distribution</h3>
             <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={240} minHeight={240}>
                 <BarChart data={data.driver_factors.age_band}>
                   <XAxis dataKey="category" stroke="#64748b" fontSize={11} />
                   <YAxis stroke="#64748b" fontSize={11} />
@@ -105,7 +112,7 @@ export const DetailedAccidentFactors: React.FC = () => {
           <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-3">
             <h3 className="text-sm font-semibold text-slate-100">Driving Experience Distribution</h3>
             <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={240} minHeight={240}>
                 <BarChart data={data.driver_factors.experience}>
                   <XAxis dataKey="category" stroke="#64748b" fontSize={11} />
                   <YAxis stroke="#64748b" fontSize={11} />
@@ -124,7 +131,7 @@ export const DetailedAccidentFactors: React.FC = () => {
           <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-3">
             <h3 className="text-sm font-semibold text-slate-100">Vehicle Type Distribution</h3>
             <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={240} minHeight={240}>
                 <BarChart data={data.vehicle_factors.vehicle_type} layout="vertical" margin={{ left: 80 }}>
                   <XAxis type="number" stroke="#64748b" fontSize={11} />
                   <YAxis type="category" dataKey="category" stroke="#94a3b8" fontSize={11} />
@@ -138,7 +145,7 @@ export const DetailedAccidentFactors: React.FC = () => {
           <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-3">
             <h3 className="text-sm font-semibold text-slate-100">Vehicle Defect Distribution</h3>
             <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={240} minHeight={240}>
                 <BarChart data={data.vehicle_factors.defects}>
                   <XAxis dataKey="category" stroke="#64748b" fontSize={11} />
                   <YAxis stroke="#64748b" fontSize={11} />
@@ -156,7 +163,7 @@ export const DetailedAccidentFactors: React.FC = () => {
         <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-3">
           <h3 className="text-sm font-semibold text-slate-100">Factor Category Distribution</h3>
           <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={240} minHeight={240}>
               <BarChart data={
                 activeTab === 'road' ? data.road_factors.surface_type :
                 activeTab === 'environment' ? data.environmental_factors.light_conditions :

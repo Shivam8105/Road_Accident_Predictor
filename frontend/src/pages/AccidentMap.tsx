@@ -1,62 +1,81 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import type { MapResponse, MapAccidentRecord } from '../types';
-import { MapContainer, TileLayer, Marker, Popup, CircleMarker, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, CircleMarker, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { 
-  MapPin, RefreshCw, Flame, Layers, 
-  Navigation, Crosshair, Wind, Car, AlertTriangle, 
-  Sun, CloudRain, CloudFog, Compass, Search,
-  Eye, ShieldAlert, Activity, CheckCircle2, Maximize2, ZoomIn, ZoomOut
+  MapPin, RefreshCw, Flame, 
+  AlertTriangle, ShieldCheck, Skull,
+  Maximize2, ZoomIn, ZoomOut, Compass, Info, Search
 } from 'lucide-react';
+import { safeFetchJson, FALLBACK_MAP_ACCIDENTS } from '../api/client';
 
-const CITY_COORDINATES: { [key: string]: { coords: [number, number]; state: string; count: string } } = {
-  'Mumbai': { coords: [19.0760, 72.8777], state: 'Maharashtra', count: '1,480 Accidents' },
-  'Delhi': { coords: [28.6139, 77.2090], state: 'Delhi NCR', count: '1,450 Accidents' },
-  'Bangalore': { coords: [12.9716, 77.5946], state: 'Karnataka', count: '1,420 Accidents' },
-  'Chennai': { coords: [13.0827, 80.2707], state: 'Tamil Nadu', count: '1,390 Accidents' },
-  'Kolkata': { coords: [22.5726, 88.3639], state: 'West Bengal', count: '1,360 Accidents' },
-  'Hyderabad': { coords: [17.3850, 78.4867], state: 'Telangana', count: '1,340 Accidents' },
-  'Pune': { coords: [18.5204, 73.8567], state: 'Maharashtra', count: '1,310 Accidents' },
-  'Ahmedabad': { coords: [23.0225, 72.5714], state: 'Gujarat', count: '1,290 Accidents' }
+const CITY_COORDINATES: { [key: string]: { coords: [number, number]; state: string; count: string; icon: string } } = {
+  'Mumbai': { coords: [19.0760, 72.8777], state: 'Maharashtra', count: '2,577 Incidents', icon: '🏙️' },
+  'Delhi': { coords: [28.6139, 77.2090], state: 'Delhi NCR', count: '2,550 Incidents', icon: '🕌' },
+  'Bangalore': { coords: [12.9716, 77.5946], state: 'Karnataka', count: '2,510 Incidents', icon: '🌴' },
+  'Chennai': { coords: [13.0827, 80.2707], state: 'Tamil Nadu', count: '2,490 Incidents', icon: '🏖️' },
+  'Kolkata': { coords: [22.5726, 88.3639], state: 'West Bengal', count: '2,460 Incidents', icon: '🌉' },
+  'Hyderabad': { coords: [17.3850, 78.4867], state: 'Telangana', count: '2,410 Incidents', icon: '🏛️' },
+  'Pune': { coords: [18.5204, 73.8567], state: 'Maharashtra', count: '2,577 Incidents', icon: '🏰' },
+  'Ahmedabad': { coords: [23.0225, 72.5714], state: 'Gujarat', count: '2,390 Incidents', icon: '🏙️' },
+  'Chandigarh': { coords: [30.7333, 76.7794], state: 'Punjab / Haryana', count: '2,577 Incidents', icon: '🏞️' }
 };
 
-// Clean Vibrant Custom SVG Markers
-const createVibrantMarkerIcon = (severity: string, sizeMultiplier: number = 1) => {
-  let mainColor = '#10b981'; // emerald
-  let pulseClass = 'marker-pulse-minor';
+const STATE_COORDINATES: { [key: string]: { coords: [number, number]; zoom: number } } = {
+  'Maharashtra': { coords: [19.7515, 75.7139], zoom: 7 },
+  'Delhi NCR': { coords: [28.6139, 77.2090], zoom: 10 },
+  'Karnataka': { coords: [15.3173, 75.7139], zoom: 7 },
+  'Tamil Nadu': { coords: [11.1271, 78.6569], zoom: 7 },
+  'West Bengal': { coords: [22.9868, 87.8550], zoom: 7 },
+  'Telangana': { coords: [18.1124, 79.0193], zoom: 7 },
+  'Gujarat': { coords: [22.2587, 71.1924], zoom: 7 },
+  'Punjab': { coords: [31.1471, 75.3412], zoom: 8 },
+  'Haryana': { coords: [29.0588, 76.0856], zoom: 8 },
+  'Uttar Pradesh': { coords: [26.8467, 80.9462], zoom: 7 },
+  'Rajasthan': { coords: [27.0238, 74.2179], zoom: 7 },
+  'Kerala': { coords: [10.8505, 76.2711], zoom: 8 },
+  'Madhya Pradesh': { coords: [22.9734, 78.6569], zoom: 7 },
+  'Bihar': { coords: [25.0961, 85.3131], zoom: 7 },
+  'Odisha': { coords: [20.9517, 85.0985], zoom: 7 },
+  'Andhra Pradesh': { coords: [15.9129, 79.7400], zoom: 7 },
+  'Assam': { coords: [26.2006, 92.9376], zoom: 7 },
+};
+
+const createVibrantMarkerIcon = (severity: string, isSelected: boolean = false) => {
+  let mainColor = '#10b981'; // Emerald Minor
+  let glowColor = 'rgba(16, 185, 129, 0.6)';
+  let size = isSelected ? 34 : 26;
 
   if (severity === 'major') {
-    mainColor = '#f59e0b'; // amber
-    pulseClass = 'marker-pulse-major';
+    mainColor = '#f59e0b'; // Amber Major
+    glowColor = 'rgba(245, 158, 11, 0.7)';
   }
   if (severity === 'fatal') {
-    mainColor = '#ef4444'; // crimson red
-    pulseClass = 'marker-pulse-fatal';
+    mainColor = '#f43f5e'; // Rose Fatal
+    glowColor = 'rgba(244, 63, 94, 0.8)';
   }
 
-  const baseSize = 24 * sizeMultiplier;
-  const innerSize = 14 * sizeMultiplier;
-  const anchor = baseSize / 2;
-
   const html = `
-    <div style="position: relative; width: ${baseSize}px; height: ${baseSize}px; display: flex; align-items: center; justify-content: center;">
-      <div class="${pulseClass}" style="
+    <div style="position: relative; width: ${size}px; height: ${size}px; display: flex; align-items: center; justify-content: center;">
+      <div style="
         position: absolute;
-        width: ${baseSize}px;
-        height: ${baseSize}px;
+        width: ${size}px;
+        height: ${size}px;
         border-radius: 50%;
         background-color: ${mainColor};
-        opacity: 0.5;
+        opacity: ${isSelected ? 0.6 : 0.35};
+        animation: pulse ${isSelected ? '1.2s' : '2.5s'} infinite ease-in-out;
+        box-shadow: 0 0 16px ${glowColor};
       "></div>
       <div style="
         position: relative;
         z-index: 10;
-        width: ${innerSize}px;
-        height: ${innerSize}px;
+        width: ${isSelected ? 16 : 12}px;
+        height: ${isSelected ? 16 : 12}px;
         border-radius: 50%;
         background: ${mainColor};
-        border: 2px solid #ffffff;
-        box-shadow: 0 0 12px ${mainColor}, 0 2px 6px rgba(0,0,0,0.6);
+        border: ${isSelected ? '3px' : '2px'} solid #ffffff;
+        box-shadow: 0 0 14px ${glowColor}, 0 3px 8px rgba(0,0,0,0.8);
       "></div>
     </div>
   `;
@@ -64,77 +83,70 @@ const createVibrantMarkerIcon = (severity: string, sizeMultiplier: number = 1) =
   return L.divIcon({
     className: 'vibrant-map-marker',
     html: html,
-    iconSize: [baseSize, baseSize],
-    iconAnchor: [anchor, anchor]
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2]
   });
 };
 
-// Smooth Map Fly-To Controller
 const MapFlyToController: React.FC<{ center: [number, number]; zoom: number }> = ({ center, zoom }) => {
   const map = useMap();
   useEffect(() => {
-    map.flyTo(center, zoom, { duration: 1.4, easeLinearity: 0.25 });
+    map.flyTo(center, zoom, { duration: 1.2, easeLinearity: 0.25 });
   }, [center, zoom, map]);
   return null;
 };
 
-// Map Custom Zoom Controls Component
 const MapCustomZoomControls: React.FC<{ onReset: () => void }> = ({ onReset }) => {
   const map = useMap();
   return (
-    <div className="absolute bottom-6 right-4 z-[400] flex flex-col gap-1.5 glass-card p-1 rounded-xl border border-white/10 shadow-2xl">
+    <div className="absolute bottom-6 right-4 z-[400] flex flex-col gap-1.5 glass-card p-1.5 rounded-2xl border border-white/10 shadow-2xl bg-black/80 backdrop-blur-md">
       <button
         onClick={() => map.zoomIn()}
-        className="p-2 rounded-lg bg-white/5 hover:bg-red-600 text-white transition-colors cursor-pointer"
-        title="Zoom In"
+        className="p-2.5 rounded-xl bg-white/10 hover:bg-indigo-600 text-white transition-colors cursor-pointer flex items-center justify-center"
+        title="Zoom In (+)"
       >
-        <ZoomIn className="w-4 h-4" />
+        <ZoomIn className="w-5 h-5" />
       </button>
       <button
         onClick={() => map.zoomOut()}
-        className="p-2 rounded-lg bg-white/5 hover:bg-red-600 text-white transition-colors cursor-pointer"
-        title="Zoom Out"
+        className="p-2.5 rounded-xl bg-white/10 hover:bg-indigo-600 text-white transition-colors cursor-pointer flex items-center justify-center"
+        title="Zoom Out (-)"
       >
-        <ZoomOut className="w-4 h-4" />
+        <ZoomOut className="w-5 h-5" />
       </button>
       <button
         onClick={onReset}
-        className="p-2 rounded-lg bg-white/5 hover:bg-red-600 text-white transition-colors cursor-pointer"
-        title="Fit India View"
+        className="p-2.5 rounded-xl bg-white/10 hover:bg-indigo-600 text-white transition-colors cursor-pointer flex items-center justify-center"
+        title="Show All India View"
       >
-        <Maximize2 className="w-4 h-4" />
+        <Maximize2 className="w-5 h-5" />
       </button>
     </div>
   );
 };
 
 export const AccidentMap: React.FC = () => {
-  const [mapData, setMapData] = useState<MapResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [mapData, setMapData] = useState<MapResponse | null>(FALLBACK_MAP_ACCIDENTS);
+  const [loading, setLoading] = useState(false);
 
-  // Filter States
+  // Simple Filters
   const [severityFilter, setSeverityFilter] = useState('all');
   const [cityFilter, setCityFilter] = useState('all');
-  const [weatherFilter, setWeatherFilter] = useState('all');
-  const [roadTypeFilter, setRoadTypeFilter] = useState('all');
-  const [causeFilter, setCauseFilter] = useState('all');
+  const [stateFilter, setStateFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   
   // View Modes & Basemap Theme
-  const [viewMode, setViewMode] = useState<'markers' | 'heatmap' | 'density'>('markers');
-  const [basemapTheme, setBasemapTheme] = useState<'dark' | 'voyager' | 'osm' | 'topo' | 'satellite' | 'positron'>('dark');
-  const [heatmapRadius, setHeatmapRadius] = useState(16);
-  const [markerScale, setMarkerScale] = useState<number>(1);
-  const [showHUD, setShowHUD] = useState(true);
+  const [viewMode, setViewMode] = useState<'markers' | 'heatmap'>('markers');
+  const [basemapStyle, setBasemapStyle] = useState<'esri_dark' | 'osm'>('esri_dark');
 
-  // Map Navigation
+  // Navigation & Selected Card
   const [mapCenter, setMapCenter] = useState<[number, number]>([20.5937, 78.9629]);
   const [mapZoom, setMapZoom] = useState(5);
-  const [selectedRecord, setSelectedRecord] = useState<MapAccidentRecord | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<MapAccidentRecord | null>(FALLBACK_MAP_ACCIDENTS.accidents[0]);
 
   useEffect(() => {
     fetchMapData();
-  }, [severityFilter, cityFilter, weatherFilter, roadTypeFilter, causeFilter]);
+  }, [severityFilter, cityFilter, stateFilter]);
 
   const fetchMapData = async () => {
     setLoading(true);
@@ -142,21 +154,23 @@ export const AccidentMap: React.FC = () => {
       const params = new URLSearchParams({
         severity: severityFilter,
         city: cityFilter,
-        weather: weatherFilter,
-        road_type: roadTypeFilter,
-        cause: causeFilter,
+        state: stateFilter,
         limit: '2000'
       });
-      const res = await fetch(`/api/map/accidents?${params.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
+      const data = await safeFetchJson<MapResponse>(
+        `/api/map/accidents?${params.toString()}`,
+        undefined,
+        FALLBACK_MAP_ACCIDENTS
+      );
+      if (data && Array.isArray(data.accidents)) {
         setMapData(data);
-        if (data.accidents?.length > 0 && !selectedRecord) {
+        if (data.accidents.length > 0 && !selectedRecord) {
           setSelectedRecord(data.accidents[0]);
         }
       }
     } catch (e) {
       console.error('Error fetching map data:', e);
+      setMapData(FALLBACK_MAP_ACCIDENTS);
     } finally {
       setLoading(false);
     }
@@ -164,42 +178,53 @@ export const AccidentMap: React.FC = () => {
 
   const handleCityJump = (cityName: string) => {
     setCityFilter(cityName);
+    if (cityName !== 'all') {
+      setStateFilter('all');
+    }
     if (CITY_COORDINATES[cityName]) {
       setMapCenter(CITY_COORDINATES[cityName].coords);
       setMapZoom(11);
     }
   };
 
+  const handleStateJump = (stateName: string) => {
+    setStateFilter(stateName);
+    if (stateName !== 'all') {
+      setCityFilter('all');
+    }
+    if (STATE_COORDINATES[stateName]) {
+      setMapCenter(STATE_COORDINATES[stateName].coords);
+      setMapZoom(STATE_COORDINATES[stateName].zoom);
+    } else if (stateName === 'all') {
+      setMapCenter([20.5937, 78.9629]);
+      setMapZoom(5);
+    }
+  };
+
   const resetMapView = () => {
     setCityFilter('all');
+    setStateFilter('all');
     setSeverityFilter('all');
-    setWeatherFilter('all');
-    setRoadTypeFilter('all');
-    setCauseFilter('all');
     setSearchQuery('');
     setMapCenter([20.5937, 78.9629]);
     setMapZoom(5);
   };
 
   const getTileUrl = () => {
-    switch (basemapTheme) {
-      case 'voyager':
-        return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-      case 'osm':
-        return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-      case 'topo':
-        return 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
-      case 'satellite':
-        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-      case 'positron':
-        return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-      case 'dark':
-      default:
-        return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+    if (basemapStyle === 'osm') {
+      return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
     }
+    // Esri World Dark Gray Base (100% Free, High Quality, No API Key Required)
+    return 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
   };
 
-  // Filtered accidents by client search query
+  const getAttribution = () => {
+    if (basemapStyle === 'osm') {
+      return '&copy; OpenStreetMap contributors';
+    }
+    return '&copy; Esri &mdash; Esri, DeLorme, NAVTEQ';
+  };
+
   const filteredAccidents = useMemo(() => {
     if (!mapData?.accidents) return [];
     if (!searchQuery.trim()) return mapData.accidents;
@@ -209,548 +234,405 @@ export const AccidentMap: React.FC = () => {
       a.city.toLowerCase().includes(q) ||
       a.state.toLowerCase().includes(q) ||
       a.cause.toLowerCase().includes(q) ||
-      a.weather.toLowerCase().includes(q) ||
-      a.road_type.toLowerCase().includes(q)
+      a.weather.toLowerCase().includes(q)
     );
   }, [mapData, searchQuery]);
 
-  // Statistics calculation for filtered records
   const totalCount = filteredAccidents.length;
   const fatalCount = filteredAccidents.filter(a => a.severity === 'fatal').length;
   const majorCount = filteredAccidents.filter(a => a.severity === 'major').length;
   const minorCount = filteredAccidents.filter(a => a.severity === 'minor').length;
-  
-  const fatalPct = totalCount > 0 ? ((fatalCount / totalCount) * 100).toFixed(1) : '0';
-  const majorPct = totalCount > 0 ? ((majorCount / totalCount) * 100).toFixed(1) : '0';
-  const minorPct = totalCount > 0 ? ((minorCount / totalCount) * 100).toFixed(1) : '0';
 
   return (
-    <div className="space-y-6 py-2">
-      {/* HEADER SECTION */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-4">
+    <div className="space-y-4 py-2">
+      {/* SIMPLE ACCESSIBLE HEADER */}
+      <div className="border-b border-white/10 pb-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-bold text-white flex items-center gap-2.5 tracking-tight">
-            <MapPin className="w-6 h-6 text-red-500" />
-            <span>GIS Spatial Risk Explorer</span>
+            <MapPin className="w-6 h-6 text-indigo-400 animate-bounce" />
+            <span>India Road Safety & Danger Map</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Interactive multi-basemap geospatial risk engine & location parameter inspector (Dataset 1)
+          <p className="text-xs text-slate-300 mt-1 flex items-center gap-1.5">
+            <Info className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <span>Click any city button below or tap map pins to see safety & risk spots in simple terms.</span>
           </p>
         </div>
 
-        {/* BASEMAP SELECTOR */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/10 text-xs overflow-x-auto scrollbar-none">
-          <span className="text-slate-400 font-medium px-2 flex items-center gap-1 shrink-0">
-            <Compass className="w-3.5 h-3.5 text-red-400" /> Theme:
+        {/* Refresh & Reset View Button */}
+        <button
+          onClick={resetMapView}
+          className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/10 hover:bg-indigo-600 text-white text-xs font-bold transition-all cursor-pointer border border-white/15 w-fit"
+        >
+          <RefreshCw className="w-4 h-4" />
+          <span>Reset India Map View</span>
+        </button>
+      </div>
+
+      {/* STATE SEARCH BAR & SELECTOR */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-black/60 p-3.5 rounded-2xl border border-white/10">
+        {/* Search State or City text input */}
+        <div className="md:col-span-6 relative">
+          <Search className="w-4 h-4 text-indigo-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search state (e.g. Maharashtra, Tamil Nadu) or city..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-black/80 text-white placeholder-slate-400 pl-10 pr-9 py-2 rounded-xl border border-white/15 text-xs font-semibold focus:outline-none focus:border-indigo-500 transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* State Dropdown Selector */}
+        <div className="md:col-span-6 flex items-center gap-2">
+          <span className="text-xs font-bold text-slate-300 whitespace-nowrap flex items-center gap-1.5">
+            <Compass className="w-4 h-4 text-indigo-400 shrink-0" />
+            <span>State Filter:</span>
           </span>
-          <button
-            onClick={() => setBasemapTheme('dark')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
-              basemapTheme === 'dark' ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-600/30' : 'text-slate-400 hover:text-white'
-            }`}
+          <select
+            value={stateFilter}
+            onChange={(e) => handleStateJump(e.target.value)}
+            className="w-full bg-black/80 text-white text-xs font-bold px-3 py-2 rounded-xl border border-white/15 focus:outline-none focus:border-indigo-500 transition-all cursor-pointer"
           >
-            Dark Mode
-          </button>
-          <button
-            onClick={() => setBasemapTheme('voyager')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
-              basemapTheme === 'voyager' ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-600/30' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Voyager
-          </button>
-          <button
-            onClick={() => setBasemapTheme('satellite')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
-              basemapTheme === 'satellite' ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-600/30' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Satellite HD
-          </button>
-          <button
-            onClick={() => setBasemapTheme('topo')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
-              basemapTheme === 'topo' ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-600/30' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Topographic
-          </button>
-          <button
-            onClick={() => setBasemapTheme('positron')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
-              basemapTheme === 'positron' ? 'bg-slate-200 text-slate-950' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Positron
-          </button>
+            <option value="all">🇮🇳 All States of India</option>
+            {Object.keys(STATE_COORDINATES).map((st) => (
+              <option key={st} value={st}>
+                📍 {st}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* FILTER CONTROL BAR */}
-      <div className="glass-card p-4 rounded-2xl border border-white/10 space-y-3 shadow-xl">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          {/* SEARCH INPUT */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-red-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filter location, cause, weather, road type..."
-              className="w-full pl-10 pr-4 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-red-500 transition-all font-medium"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
-          {/* VIEW MODES */}
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="text-slate-400 font-semibold mr-1">Display Mode:</span>
-            <button
-              onClick={() => setViewMode('markers')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                viewMode === 'markers' ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md' : 'bg-white/5 text-slate-400 hover:text-white'
-              }`}
-            >
-              <MapPin className="w-3.5 h-3.5" /> Neon Markers
-            </button>
-            <button
-              onClick={() => setViewMode('heatmap')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                viewMode === 'heatmap' ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md' : 'bg-white/5 text-slate-400 hover:text-white'
-              }`}
-            >
-              <Flame className="w-3.5 h-3.5" /> Heatmap
-            </button>
-            <button
-              onClick={() => setViewMode('density')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                viewMode === 'density' ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md' : 'bg-white/5 text-slate-400 hover:text-white'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" /> Density Clusters
-            </button>
-          </div>
+      {/* ONE-TAP EASY CITY SELECTOR BUTTONS */}
+      <div className="space-y-2">
+        <div className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+          <Compass className="w-4 h-4 text-indigo-400" />
+          <span>Tap a City to Jump Directly to its Hotspots:</span>
         </div>
-
-        {/* CHIP FILTERS ROW */}
-        <div className="flex flex-wrap items-center gap-2 text-xs pt-1 border-t border-white/10">
-          <span className="text-slate-400 font-semibold shrink-0">Severity:</span>
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
           <button
-            onClick={() => setSeverityFilter('all')}
-            className={`px-3 py-1 rounded-lg font-bold cursor-pointer transition-all ${
-              severityFilter === 'all' ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white' : 'bg-white/5 text-slate-400 border border-white/10 hover:text-white'
+            onClick={() => { setCityFilter('all'); setMapCenter([20.5937, 78.9629]); setMapZoom(5); }}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap cursor-pointer transition-all ${
+              cityFilter === 'all' 
+                ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-600/30 scale-105' 
+                : 'bg-black/60 text-slate-300 border border-white/15 hover:border-indigo-500'
             }`}
           >
-            All ({mapData?.accidents?.length || 0})
+            <span>🇮🇳 All India</span>
+          </button>
+          {Object.entries(CITY_COORDINATES).map(([cityName, data]) => (
+            <button
+              key={cityName}
+              onClick={() => handleCityJump(cityName)}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap cursor-pointer transition-all ${
+                cityFilter === cityName 
+                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-600/30 scale-105' 
+                  : 'bg-black/60 text-slate-300 border border-white/15 hover:border-indigo-500'
+              }`}
+            >
+              <span>{data.icon} {cityName}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* DANGER LEVEL SEVERITY LEGEND & FILTERS */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-black/60 p-3 rounded-2xl border border-white/10">
+        {/* Simple Filter Chips */}
+        <div className="md:col-span-8 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-bold text-slate-300 mr-1">Filter Danger:</span>
+          <button
+            onClick={() => setSeverityFilter('all')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              severityFilter === 'all' ? 'bg-white text-black font-extrabold' : 'bg-white/10 text-slate-300 hover:text-white'
+            }`}
+          >
+            All Incidents ({totalCount})
           </button>
           <button
             onClick={() => setSeverityFilter('fatal')}
-            className={`px-3 py-1 rounded-lg font-bold cursor-pointer transition-all flex items-center gap-1.5 ${
-              severityFilter === 'fatal' ? 'bg-red-600 text-white shadow-lg shadow-red-600/40' : 'bg-red-950/60 text-red-400 border border-red-800/60 hover:border-red-500'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              severityFilter === 'fatal' ? 'bg-red-600 text-white shadow-md shadow-red-600/30' : 'bg-red-950/40 text-red-300 border border-red-800/40'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-            <span>Fatal ({fatalCount})</span>
+            <Skull className="w-3.5 h-3.5" />
+            <span>High Danger / Fatal ({fatalCount})</span>
           </button>
           <button
             onClick={() => setSeverityFilter('major')}
-            className={`px-3 py-1 rounded-lg font-bold cursor-pointer transition-all flex items-center gap-1.5 ${
-              severityFilter === 'major' ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/40' : 'bg-amber-950/60 text-amber-400 border border-amber-800/60 hover:border-amber-500'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              severityFilter === 'major' ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30' : 'bg-amber-950/40 text-amber-300 border border-amber-800/40'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
-            <span>Major ({majorCount})</span>
+            <AlertTriangle className="w-3.5 h-3.5" />
+            <span>Medium Risk / Hospital ({majorCount})</span>
           </button>
           <button
             onClick={() => setSeverityFilter('minor')}
-            className={`px-3 py-1 rounded-lg font-bold cursor-pointer transition-all flex items-center gap-1.5 ${
-              severityFilter === 'minor' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/40' : 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/60 hover:border-emerald-500'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              severityFilter === 'minor' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30' : 'bg-emerald-950/40 text-emerald-300 border border-emerald-800/40'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Minor ({minorCount})</span>
-          </button>
-
-          <span className="text-slate-400 font-semibold shrink-0 ml-3">Weather:</span>
-          <button
-            onClick={() => setWeatherFilter(weatherFilter === 'clear' ? 'all' : 'clear')}
-            className={`px-3 py-1 rounded-lg font-bold cursor-pointer transition-all flex items-center gap-1 ${
-              weatherFilter === 'clear' ? 'bg-red-600 text-white' : 'bg-white/5 text-slate-400 border border-white/10'
-            }`}
-          >
-            <Sun className="w-3.5 h-3.5" /> Clear
-          </button>
-          <button
-            onClick={() => setWeatherFilter(weatherFilter === 'rain' ? 'all' : 'rain')}
-            className={`px-3 py-1 rounded-lg font-bold cursor-pointer transition-all flex items-center gap-1 ${
-              weatherFilter === 'rain' ? 'bg-red-600 text-white' : 'bg-white/5 text-slate-400 border border-white/10'
-            }`}
-          >
-            <CloudRain className="w-3.5 h-3.5" /> Heavy Rain
-          </button>
-          <button
-            onClick={() => setWeatherFilter(weatherFilter === 'fog' ? 'all' : 'fog')}
-            className={`px-3 py-1 rounded-lg font-bold cursor-pointer transition-all flex items-center gap-1 ${
-              weatherFilter === 'fog' ? 'bg-red-600 text-white' : 'bg-white/5 text-slate-400 border border-white/10'
-            }`}
-          >
-            <CloudFog className="w-3.5 h-3.5" /> Fog
-          </button>
-
-          <span className="text-slate-400 font-semibold shrink-0 ml-3">Primary Cause:</span>
-          <select
-            value={causeFilter}
-            onChange={(e) => setCauseFilter(e.target.value)}
-            className="px-3 py-1 rounded-lg bg-black/60 border border-white/15 text-white font-bold text-xs focus:outline-none cursor-pointer"
-          >
-            <option value="all">All Accident Causes</option>
-            <option value="over-speeding">Over-Speeding</option>
-            <option value="drunk driving">Drunk Driving</option>
-            <option value="weather conditions">Adverse Weather</option>
-            <option value="mechanical breakdown">Mechanical Failure</option>
-            <option value="distracted driving">Distracted Driving</option>
-            <option value="sudden braking">Sudden Braking</option>
-          </select>
-
-          <button
-            onClick={resetMapView}
-            className="ml-auto px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-1 cursor-pointer transition-all border border-white/10"
-          >
-            <Crosshair className="w-3.5 h-3.5" /> Reset View
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Low Risk / Minor ({minorCount})</span>
           </button>
         </div>
-      </div>
 
-      {/* INTERACTIVE METRO CITY HOTSPOT JUMP STRIP */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
-          <div className="flex items-center gap-2">
-            <Navigation className="w-4 h-4 text-red-500" />
-            <span>Interactive Metro Hotspots (Click any city card to fly camera)</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 text-xs">
-          {Object.entries(CITY_COORDINATES).map(([cityName, info]) => {
-            const isSelected = cityFilter === cityName;
-            return (
-              <div
-                key={cityName}
-                onClick={() => handleCityJump(cityName)}
-                className={`p-3 rounded-2xl cursor-pointer transition-all duration-300 hover:scale-105 border relative overflow-hidden group ${
-                  isSelected
-                    ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white border-white shadow-lg shadow-red-600/30'
-                    : 'glass-card text-slate-200 border-white/10 hover:border-red-500/40'
-                }`}
-              >
-                <div className="font-bold text-xs flex items-center justify-between">
-                  <span>{cityName}</span>
-                  <MapPin className={`w-3.5 h-3.5 ${isSelected ? 'text-white animate-bounce' : 'text-red-400 opacity-60'}`} />
-                </div>
-                <div className="text-[10px] opacity-80 font-medium">{info.state}</div>
-                <div className="text-[10px] font-bold text-red-300 mt-1">{info.count}</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* MAIN MAP CONTAINER & INSPECTOR PANEL */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* MAP CANVAS DISPLAY */}
-        <div className="lg:col-span-8 glass-card p-2 rounded-3xl h-[620px] relative overflow-hidden shadow-2xl border border-red-500/30">
-          {loading && (
-            <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center text-red-400 font-bold text-xs gap-3">
-              <RefreshCw className="w-8 h-8 animate-spin text-red-500" />
-              <span>Rendering GIS Spatial Risk Points...</span>
-            </div>
-          )}
-
-          {/* FLOATING HUD MINI STATS OVERLAY (Top-Left) */}
-          {showHUD && mapData && (
-            <div className="absolute top-4 left-4 z-[400] glass-card p-3.5 rounded-2xl border border-red-500/40 text-xs space-y-2 shadow-2xl backdrop-blur-xl max-w-[240px]">
-              <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                <span className="font-extrabold text-white flex items-center gap-1.5">
-                  <Activity className="w-4 h-4 text-red-500" /> Spatial Analytics HUD
-                </span>
-                <button onClick={() => setShowHUD(false)} className="text-slate-400 hover:text-white font-bold text-xs">✕</button>
-              </div>
-
-              <div className="space-y-1.5 font-mono text-[11px]">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Total Matched:</span>
-                  <span className="font-extrabold text-white">{totalCount}</span>
-                </div>
-                <div className="flex justify-between text-red-400">
-                  <span>Fatal Rate:</span>
-                  <span className="font-bold">{fatalCount} ({fatalPct}%)</span>
-                </div>
-                <div className="flex justify-between text-amber-400">
-                  <span>Major Rate:</span>
-                  <span className="font-bold">{majorCount} ({majorPct}%)</span>
-                </div>
-                <div className="flex justify-between text-emerald-400">
-                  <span>Minor Rate:</span>
-                  <span className="font-bold">{minorCount} ({minorPct}%)</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {!showHUD && (
+        {/* View Mode & Map Theme Toggle */}
+        <div className="md:col-span-5 flex flex-wrap items-center justify-end gap-2">
+          {/* Map Basemap Style Switcher */}
+          <div className="flex items-center bg-black/60 p-1 rounded-xl border border-white/10">
             <button
-              onClick={() => setShowHUD(true)}
-              className="absolute top-4 left-4 z-[400] glass-card px-3 py-1.5 rounded-xl border border-red-500/40 text-red-400 text-xs font-bold flex items-center gap-1 shadow-lg hover:bg-white/10"
+              onClick={() => setBasemapStyle('esri_dark')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                basemapStyle === 'esri_dark' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+              }`}
             >
-              <Activity className="w-3.5 h-3.5" /> Show HUD
+              🌙 Dark Map
             </button>
-          )}
-
-          {/* FLOATING CONTROLS: RADIUS & MARKER SIZE (Top-Right) */}
-          <div className="absolute top-4 right-4 z-[400] glass-card p-3 rounded-2xl border border-red-500/40 text-xs space-y-2 shadow-2xl backdrop-blur-xl">
-            {viewMode === 'heatmap' ? (
-              <div className="space-y-1">
-                <div className="font-bold text-white flex items-center gap-1.5">
-                  <Flame className="w-4 h-4 text-amber-400 animate-pulse" /> Radius: {heatmapRadius}px
-                </div>
-                <input
-                  type="range"
-                  min="8"
-                  max="32"
-                  value={heatmapRadius}
-                  onChange={(e) => setHeatmapRadius(parseInt(e.target.value))}
-                  className="w-36 accent-red-500 cursor-pointer"
-                />
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-300 flex items-center gap-1">
-                  <Eye className="w-3.5 h-3.5 text-red-400" /> Size:
-                </span>
-                <button
-                  onClick={() => setMarkerScale(0.8)}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold ${markerScale === 0.8 ? 'bg-red-600 text-white' : 'bg-white/10 text-slate-400'}`}
-                >
-                  S
-                </button>
-                <button
-                  onClick={() => setMarkerScale(1)}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold ${markerScale === 1 ? 'bg-red-600 text-white' : 'bg-white/10 text-slate-400'}`}
-                >
-                  M
-                </button>
-                <button
-                  onClick={() => setMarkerScale(1.3)}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold ${markerScale === 1.3 ? 'bg-red-600 text-white' : 'bg-white/10 text-slate-400'}`}
-                >
-                  L
-                </button>
-              </div>
-            )}
+            <button
+              onClick={() => setBasemapStyle('osm')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                basemapStyle === 'osm' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              🗺️ Street Map
+            </button>
           </div>
 
-          {/* FLOATING ZOOM CONTROLS (Bottom-Right) */}
+          <div className="flex items-center bg-black/60 p-1 rounded-xl border border-white/10">
+            <button
+              onClick={() => setViewMode('markers')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                viewMode === 'markers' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <MapPin className="w-3 h-3" />
+              <span>Pins</span>
+            </button>
+            <button
+              onClick={() => setViewMode('heatmap')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                viewMode === 'heatmap' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Flame className="w-3 h-3" />
+              <span>Heatmap</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* MAP CONTAINER & SIDE INSPECTOR */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* LEAFLET MAP VIEWPORT */}
+        <div className="lg:col-span-8 relative h-[520px] rounded-3xl overflow-hidden border border-white/15 shadow-2xl">
+          {loading && (
+            <div className="absolute top-4 left-4 z-[400] glass-card px-4 py-2 rounded-2xl border border-indigo-500/30 flex items-center gap-2 text-xs font-bold text-white bg-black/80">
+              <RefreshCw className="w-4 h-4 animate-spin text-indigo-400" />
+              <span>Updating Map...</span>
+            </div>
+          )}
+
           <MapContainer
             center={mapCenter}
             zoom={mapZoom}
-            scrollWheelZoom={true}
-            style={{ width: '100%', height: '100%', borderRadius: '1.25rem' }}
+            zoomControl={false}
+            className="w-full h-full z-0 bg-[#0a0a0f]"
           >
             <MapFlyToController center={mapCenter} zoom={mapZoom} />
+            <TileLayer url={getTileUrl()} maxZoom={18} attribution={getAttribution()} />
             <MapCustomZoomControls onReset={resetMapView} />
 
-            <TileLayer
-              attribution='&copy; <a href="https://www.carto.com/">CARTO</a>'
-              url={getTileUrl()}
-            />
+            {/* Floating Top HUD Stats Badge inside Map */}
+            <div className="absolute top-4 right-4 z-[400] flex items-center gap-2 text-[11px] font-bold">
+              <div className="glass-card px-3 py-1.5 rounded-xl border border-white/10 bg-black/80 text-white flex items-center gap-2 shadow-lg">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <span>Showing {filteredAccidents.length.toLocaleString()} Active Nodes</span>
+              </div>
+            </div>
 
-            {/* MARKERS MODE */}
-            {viewMode === 'markers' && filteredAccidents.map((record) => (
-              <Marker
-                key={record.accident_id}
-                position={[record.latitude, record.longitude]}
-                icon={createVibrantMarkerIcon(record.severity, markerScale)}
-                eventHandlers={{
-                  click: () => setSelectedRecord(record)
-                }}
-              >
-                <Popup className="custom-leaflet-popup">
-                  <div className="p-2 space-y-2 text-xs text-slate-100 min-w-[200px]">
-                    <div className="font-bold border-b border-white/10 pb-1.5 text-sm uppercase flex items-center justify-between gap-2">
-                      <span className="text-white font-extrabold">{record.city}, {record.state}</span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase text-white ${
-                        record.severity === 'fatal' ? 'bg-red-600' : 
-                        record.severity === 'major' ? 'bg-amber-600' : 
-                        'bg-emerald-600'
-                      }`}>
-                        {record.severity}
-                      </span>
-                    </div>
-
-                    <div className="space-y-1 text-[11px] text-slate-300">
-                      <div><strong>Date & Time:</strong> {record.date} ({record.time})</div>
-                      <div><strong>Weather:</strong> {record.weather} ({record.temperature}°C)</div>
-                      <div><strong>Road Type:</strong> {record.road_type}</div>
-                      <div><strong>Cause:</strong> <span className="text-red-400 font-bold">{record.cause}</span></div>
-                    </div>
-
-                    <button
-                      onClick={() => setSelectedRecord(record)}
-                      className="mt-2 w-full py-1.5 bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold rounded-xl text-[11px] text-center block cursor-pointer transition-all shadow-md"
-                    >
-                      Inspect Location Parameters →
-                    </button>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-
-            {/* HEATMAP / DENSITY CIRCLES MODE */}
-            {(viewMode === 'heatmap' || viewMode === 'density') && filteredAccidents.map((record) => (
-              <CircleMarker
-                key={`circle-${record.accident_id}`}
-                center={[record.latitude, record.longitude]}
-                radius={
-                  viewMode === 'heatmap'
-                    ? (record.severity === 'fatal' ? heatmapRadius * 1.25 : record.severity === 'major' ? heatmapRadius * 0.9 : heatmapRadius * 0.6)
-                    : (record.severity === 'fatal' ? 14 : record.severity === 'major' ? 9 : 6)
-                }
-                eventHandlers={{
-                  click: () => setSelectedRecord(record)
-                }}
+            {/* Selected Spot Radar Ring */}
+            {selectedRecord && (
+              <Circle
+                center={[selectedRecord.latitude, selectedRecord.longitude]}
+                radius={2500}
                 pathOptions={{
-                  color: record.severity === 'fatal' ? '#ef4444' : record.severity === 'major' ? '#f59e0b' : '#10b981',
-                  fillColor: record.severity === 'fatal' ? '#ef4444' : record.severity === 'major' ? '#f59e0b' : '#10b981',
-                  fillOpacity: viewMode === 'heatmap' ? 0.5 : 0.75,
-                  weight: viewMode === 'heatmap' ? 0.5 : 2
+                  color: selectedRecord.severity === 'fatal' ? '#f43f5e' : selectedRecord.severity === 'major' ? '#f59e0b' : '#10b981',
+                  fillColor: selectedRecord.severity === 'fatal' ? '#f43f5e' : selectedRecord.severity === 'major' ? '#f59e0b' : '#10b981',
+                  fillOpacity: 0.18,
+                  weight: 2,
+                  dashArray: '5, 5'
                 }}
               />
-            ))}
+            )}
+
+            {/* Render Pins / Markers */}
+            {viewMode === 'markers' && filteredAccidents.slice(0, 500).map((record) => {
+              const isSelected = selectedRecord?.accident_id === record.accident_id;
+              return (
+                <Marker
+                  key={record.accident_id}
+                  position={[record.latitude, record.longitude]}
+                  icon={createVibrantMarkerIcon(record.severity, isSelected)}
+                  eventHandlers={{
+                    click: () => {
+                      setSelectedRecord(record);
+                      setMapCenter([record.latitude, record.longitude]);
+                    }
+                  }}
+                >
+                  <Popup className="custom-leaflet-popup">
+                    <div className="p-2.5 space-y-1.5 text-slate-900 min-w-[180px]">
+                      <div className="font-bold text-xs flex items-center gap-1.5 text-indigo-950 border-b pb-1">
+                        <MapPin className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                        <span>{record.city}, {record.state}</span>
+                      </div>
+                      <div className="text-[11px] font-extrabold uppercase flex items-center gap-1" style={{
+                        color: record.severity === 'fatal' ? '#e11d48' : record.severity === 'major' ? '#d97706' : '#059669'
+                      }}>
+                        {record.severity === 'fatal' ? '🔴 FATAL DANGER' : record.severity === 'major' ? '🟡 MAJOR INJURY' : '🟢 MINOR RISK'}
+                      </div>
+                      <div className="text-[10px] text-slate-600 font-medium">
+                        Factor: {record.cause.replace('_', ' ')}
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-mono">
+                        {record.latitude.toFixed(3)}°N, {record.longitude.toFixed(3)}°E
+                      </div>
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
+
+            {/* Render Heatmap Circles */}
+            {viewMode === 'heatmap' && filteredAccidents.slice(0, 400).map((record) => {
+              const radius = record.severity === 'fatal' ? 20 : record.severity === 'major' ? 15 : 10;
+              const color = record.severity === 'fatal' ? '#f43f5e' : record.severity === 'major' ? '#f59e0b' : '#10b981';
+              const isSelected = selectedRecord?.accident_id === record.accident_id;
+
+              return (
+                <CircleMarker
+                  key={`heat-${record.accident_id}`}
+                  center={[record.latitude, record.longitude]}
+                  radius={radius}
+                  pathOptions={{
+                    fillColor: color,
+                    fillOpacity: isSelected ? 0.9 : 0.6,
+                    color: isSelected ? '#ffffff' : color,
+                    weight: isSelected ? 3 : 1
+                  }}
+                  eventHandlers={{
+                    click: () => {
+                      setSelectedRecord(record);
+                      setMapCenter([record.latitude, record.longitude]);
+                    }
+                  }}
+                />
+              );
+            })}
           </MapContainer>
         </div>
 
-        {/* LOCATION INSPECTOR SIDE CARD */}
-        <div className="lg:col-span-4 glass-card p-6 rounded-3xl border border-red-500/30 space-y-6 flex flex-col justify-between shadow-2xl">
-          <div>
-            <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
-              <h3 className="text-base font-extrabold text-white flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-red-500" />
-                <span>Location Inspector</span>
-              </h3>
-              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-red-950 text-red-300 border border-red-800">
-                Interactive Detail
-              </span>
+        {/* SIDE-BY-SIDE LOCATION & INCIDENT INSPECTOR */}
+        <div className="lg:col-span-4 space-y-3">
+          {selectedRecord ? (
+            <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-4 bg-slate-900/90 shadow-xl">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400">
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading text-base font-bold text-white">
+                      {selectedRecord.location_name || `${selectedRecord.road_type.toUpperCase()} Corridor`}
+                    </h3>
+                    <p className="text-xs text-indigo-400 font-semibold">{selectedRecord.city}, {selectedRecord.state}</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-950 text-slate-400 border border-slate-800">
+                  #{selectedRecord.accident_id}
+                </span>
+              </div>
+
+              {/* Exact Location & Coordinates Box */}
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
+                <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Exact Spot Coordinates</div>
+                <div className="flex items-center justify-between font-mono text-slate-200">
+                  <span className="font-bold text-indigo-300">
+                    📍 {selectedRecord.latitude.toFixed(4)}° N, {selectedRecord.longitude.toFixed(4)}° E
+                  </span>
+                  <span className="text-[10px] text-slate-400 uppercase font-sans">GPS Grid</span>
+                </div>
+                <div className="text-[11px] text-slate-400 leading-relaxed pt-1 border-t border-slate-800/80">
+                  {selectedRecord.location_address || `${selectedRecord.road_type.toUpperCase()} Sector, ${selectedRecord.city}, ${selectedRecord.state}`}
+                </div>
+              </div>
+
+              {/* Danger Level Status Banner */}
+              <div className={`p-3.5 rounded-xl border flex items-center gap-3 ${
+                selectedRecord.severity === 'fatal' 
+                  ? 'bg-rose-950/40 border-rose-800/60 text-rose-400' 
+                  : selectedRecord.severity === 'major' 
+                  ? 'bg-amber-950/40 border-amber-800/60 text-amber-400' 
+                  : 'bg-emerald-950/40 border-emerald-800/60 text-emerald-400'
+              }`}>
+                {selectedRecord.severity === 'fatal' ? (
+                  <Skull className="w-7 h-7 text-rose-400 shrink-0" />
+                ) : selectedRecord.severity === 'major' ? (
+                  <AlertTriangle className="w-7 h-7 text-amber-400 shrink-0" />
+                ) : (
+                  <ShieldCheck className="w-7 h-7 text-emerald-400 shrink-0" />
+                )}
+                <div>
+                  <div className="text-[10px] font-semibold uppercase opacity-80">Risk Severity</div>
+                  <div className="font-heading text-base font-bold uppercase">
+                    {selectedRecord.severity === 'fatal' ? 'FATAL DANGER' : selectedRecord.severity === 'major' ? 'MAJOR INJURY RISK' : 'MINOR SEVERITY'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Incident Factor Breakdown */}
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                  <span className="text-slate-400">Weather Condition</span>
+                  <span className="text-slate-200 font-medium capitalize">{selectedRecord.weather}</span>
+                </div>
+                <div className="flex justify-between p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                  <span className="text-slate-400">Primary Cause</span>
+                  <span className="text-slate-200 font-medium capitalize">{selectedRecord.cause.replace('_', ' ')}</span>
+                </div>
+                <div className="flex justify-between p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                  <span className="text-slate-400">Road Infrastructure</span>
+                  <span className="text-slate-200 font-medium capitalize">{selectedRecord.road_type}</span>
+                </div>
+                <div className="flex justify-between p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                  <span className="text-slate-400">Time Recorded</span>
+                  <span className="text-slate-200 font-mono font-medium">{selectedRecord.time}</span>
+                </div>
+                <div className="flex justify-between p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                  <span className="text-slate-400">Traffic Density</span>
+                  <span className="text-slate-200 font-medium capitalize">{selectedRecord.traffic_density}</span>
+                </div>
+              </div>
             </div>
-
-            {selectedRecord ? (
-              <div className="space-y-4">
-                {/* Header Badge */}
-                <div className="p-4 rounded-2xl bg-black/60 border border-red-500/30 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-base font-black text-white uppercase tracking-wider">{selectedRecord.city}, {selectedRecord.state}</span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-black uppercase text-white shadow-lg ${
-                      selectedRecord.severity === 'fatal' ? 'bg-red-600 shadow-red-600/40' :
-                      selectedRecord.severity === 'major' ? 'bg-amber-600 shadow-amber-600/40' :
-                      'bg-emerald-600 shadow-emerald-600/40'
-                    }`}>
-                      {selectedRecord.severity}
-                    </span>
-                  </div>
-
-                  <div className="text-[11px] font-mono text-red-400 flex items-center gap-1.5 pt-1 border-t border-white/10">
-                    <Crosshair className="w-3.5 h-3.5" /> Lat: {selectedRecord.latitude.toFixed(4)}, Lng: {selectedRecord.longitude.toFixed(4)}
-                  </div>
-                </div>
-
-                {/* Attributes */}
-                <div className="space-y-2 text-xs font-medium">
-                  <div className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/10">
-                    <span className="text-slate-400">Date & Time:</span>
-                    <span className="font-bold text-white font-mono">{selectedRecord.date} ({selectedRecord.time})</span>
-                  </div>
-
-                  <div className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/10">
-                    <span className="text-slate-400 flex items-center gap-1.5">
-                      <Wind className="w-3.5 h-3.5 text-red-400" /> Weather:
-                    </span>
-                    <span className="font-bold text-red-300 capitalize">{selectedRecord.weather} ({selectedRecord.temperature}°C)</span>
-                  </div>
-
-                  <div className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/10">
-                    <span className="text-slate-400 flex items-center gap-1.5">
-                      <Car className="w-3.5 h-3.5 text-slate-400" /> Road Type:
-                    </span>
-                    <span className="font-bold text-white capitalize">{selectedRecord.road_type}</span>
-                  </div>
-
-                  <div className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/10">
-                    <span className="text-slate-400 flex items-center gap-1.5">
-                      <AlertTriangle className="w-3.5 h-3.5 text-red-400" /> Primary Cause:
-                    </span>
-                    <span className="font-bold text-red-300 capitalize">{selectedRecord.cause}</span>
-                  </div>
-
-                  <div className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/10">
-                    <span className="text-slate-400 flex items-center gap-1.5">
-                      <ShieldAlert className="w-3.5 h-3.5 text-amber-400" /> Traffic Density:
-                    </span>
-                    <span className="font-bold text-amber-300 capitalize">{selectedRecord.traffic_density || 'High'}</span>
-                  </div>
-                </div>
-
-                {/* Risk Bar */}
-                <div className="p-3.5 rounded-2xl bg-black/60 border border-white/10 space-y-1.5">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-400 font-bold">Severity Rating:</span>
-                    <span className={`font-black uppercase ${
-                      selectedRecord.severity === 'fatal' ? 'text-red-400' : selectedRecord.severity === 'major' ? 'text-amber-400' : 'text-emerald-400'
-                    }`}>
-                      {selectedRecord.severity === 'fatal' ? 'Critical High' : selectedRecord.severity === 'major' ? 'Moderate High' : 'Low Risk'}
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-white/10">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        selectedRecord.severity === 'fatal' ? 'w-full bg-gradient-to-r from-amber-500 to-red-600' :
-                        selectedRecord.severity === 'major' ? 'w-2/3 bg-amber-500' :
-                        'w-1/3 bg-emerald-500'
-                      }`}
-                    />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-16 text-center text-slate-500 space-y-3">
-                <MapPin className="w-10 h-10 text-slate-700 animate-bounce" />
-                <p className="text-xs">Click any accident pin or circle marker on the map to inspect location parameters.</p>
-              </div>
-            )}
-          </div>
-
-          <div className="pt-4 border-t border-white/10">
-            <button
-              onClick={fetchMapData}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs shadow-lg shadow-red-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              <span>Refresh Map Spatial Layer</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* DISCLAIMER NOTICE */}
-      <div className="p-4 rounded-2xl bg-white/5 border border-red-500/20 text-xs text-slate-400 flex items-start gap-3">
-        <CheckCircle2 className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-        <div>
-          <span className="font-bold text-white">Historical Concentration Note:</span> Coordinates represent aggregated spatial pattern samples from Dataset 1 (`indian_roads_dataset.csv`) for geographic hotspot identification and traffic management decision support.
+          ) : (
+            <div className="glass-card p-6 rounded-2xl border border-slate-800 text-center space-y-3 min-h-[300px] flex flex-col items-center justify-center bg-slate-900/60">
+              <Compass className="w-10 h-10 text-slate-600" />
+              <div className="text-sm font-semibold text-slate-200">No Location Selected</div>
+              <p className="text-xs text-slate-400">
+                Click any heatmap circle or pin to inspect full location address, coordinates, and risk data.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

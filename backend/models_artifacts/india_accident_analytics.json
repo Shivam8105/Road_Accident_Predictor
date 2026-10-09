@@ -1,0 +1,548 @@
+{
+  "summary": {
+    "totalAccidents": 20000,
+    "fatalAccidents": 2987,
+    "majorAccidents": 5988,
+    "minorAccidents": 11025,
+    "citiesCovered": 8,
+    "statesCovered": 7,
+    "yearsCovered": [
+      2022,
+      2023,
+      2024,
+      2025
+    ]
+  },
+  "cityCounts": [
+    {
+      "city": "Chandigarh",
+      "accidents": 2577
+    },
+    {
+      "city": "Chennai",
+      "accidents": 2575
+    },
+    {
+      "city": "Kolkata",
+      "accidents": 2559
+    },
+    {
+      "city": "Pune",
+      "accidents": 2517
+    },
+    {
+      "city": "Mumbai",
+      "accidents": 2492
+    },
+    {
+      "city": "Bangalore",
+      "accidents": 2438
+    },
+    {
+      "city": "Delhi",
+      "accidents": 2433
+    },
+    {
+      "city": "Hyderabad",
+      "accidents": 2409
+    }
+  ],
+  "stateCounts": [
+    {
+      "state": "Maharashtra",
+      "accidents": 5009
+    },
+    {
+      "state": "Punjab",
+      "accidents": 2577
+    },
+    {
+      "state": "Tamil Nadu",
+      "accidents": 2575
+    },
+    {
+      "state": "West Bengal",
+      "accidents": 2559
+    },
+    {
+      "state": "Karnataka",
+      "accidents": 2438
+    },
+    {
+      "state": "Delhi",
+      "accidents": 2433
+    },
+    {
+      "state": "Telangana",
+      "accidents": 2409
+    }
+  ],
+  "yearCounts": [
+    {
+      "year": 2022,
+      "accidents": 6117
+    },
+    {
+      "year": 2023,
+      "accidents": 6088
+    },
+    {
+      "year": 2024,
+      "accidents": 6061
+    },
+    {
+      "year": 2025,
+      "accidents": 1734
+    }
+  ],
+  "severityCounts": [
+    {
+      "accident_severity": "fatal",
+      "accidents": 2987
+    },
+    {
+      "accident_severity": "major",
+      "accidents": 5988
+    },
+    {
+      "accident_severity": "minor",
+      "accidents": 11025
+    }
+  ],
+  "weatherCounts": [
+    {
+      "weather": "clear",
+      "accidents": 6690
+    },
+    {
+      "weather": "rain",
+      "accidents": 6677
+    },
+    {
+      "weather": "fog",
+      "accidents": 6633
+    }
+  ],
+  "roadTypeCounts": [
+    {
+      "road_type": "urban",
+      "accidents": 6745
+    },
+    {
+      "road_type": "rural",
+      "accidents": 6639
+    },
+    {
+      "road_type": "highway",
+      "accidents": 6616
+    }
+  ],
+  "causeCounts": [
+    {
+      "cause": "distraction",
+      "accidents": 4026
+    },
+    {
+      "cause": "overspeeding",
+      "accidents": 4025
+    },
+    {
+      "cause": "weather",
+      "accidents": 3997
+    },
+    {
+      "cause": "drunk driving",
+      "accidents": 3978
+    },
+    {
+      "cause": "poor road",
+      "accidents": 3974
+    }
+  ],
+  "citySeverity": [
+    {
+      "city": "Bangalore",
+      "accident_severity": "fatal",
+      "accidents": 384
+    },
+    {
+      "city": "Bangalore",
+      "accident_severity": "major",
+      "accidents": 707
+    },
+    {
+      "city": "Bangalore",
+      "accident_severity": "minor",
+      "accidents": 1347
+    },
+    {
+      "city": "Chandigarh",
+      "accident_severity": "fatal",
+      "accidents": 378
+    },
+    {
+      "city": "Chandigarh",
+      "accident_severity": "major",
+      "accidents": 780
+    },
+    {
+      "city": "Chandigarh",
+      "accident_severity": "minor",
+      "accidents": 1419
+    },
+    {
+      "city": "Chennai",
+      "accident_severity": "fatal",
+      "accidents": 371
+    },
+    {
+      "city": "Chennai",
+      "accident_severity": "major",
+      "accidents": 794
+    },
+    {
+      "city": "Chennai",
+      "accident_severity": "minor",
+      "accidents": 1410
+    },
+    {
+      "city": "Delhi",
+      "accident_severity": "fatal",
+      "accidents": 382
+    },
+    {
+      "city": "Delhi",
+      "accident_severity": "major",
+      "accidents": 691
+    },
+    {
+      "city": "Delhi",
+      "accident_severity": "minor",
+      "accidents": 1360
+    },
+    {
+      "city": "Hyderabad",
+      "accident_severity": "fatal",
+      "accidents": 338
+    },
+    {
+      "city": "Hyderabad",
+      "accident_severity": "major",
+      "accidents": 752
+    },
+    {
+      "city": "Hyderabad",
+      "accident_severity": "minor",
+      "accidents": 1319
+    },
+    {
+      "city": "Kolkata",
+      "accident_severity": "fatal",
+      "accidents": 377
+    },
+    {
+      "city": "Kolkata",
+      "accident_severity": "major",
+      "accidents": 737
+    },
+    {
+      "city": "Kolkata",
+      "accident_severity": "minor",
+      "accidents": 1445
+    },
+    {
+      "city": "Mumbai",
+      "accident_severity": "fatal",
+      "accidents": 359
+    },
+    {
+      "city": "Mumbai",
+      "accident_severity": "major",
+      "accidents": 798
+    },
+    {
+      "city": "Mumbai",
+      "accident_severity": "minor",
+      "accidents": 1335
+    },
+    {
+      "city": "Pune",
+      "accident_severity": "fatal",
+      "accidents": 398
+    },
+    {
+      "city": "Pune",
+      "accident_severity": "major",
+      "accidents": 729
+    },
+    {
+      "city": "Pune",
+      "accident_severity": "minor",
+      "accidents": 1390
+    }
+  ],
+  "yearSeverity": [
+    {
+      "year": 2022,
+      "accident_severity": "fatal",
+      "accidents": 909
+    },
+    {
+      "year": 2022,
+      "accident_severity": "major",
+      "accidents": 1893
+    },
+    {
+      "year": 2022,
+      "accident_severity": "minor",
+      "accidents": 3315
+    },
+    {
+      "year": 2023,
+      "accident_severity": "fatal",
+      "accidents": 891
+    },
+    {
+      "year": 2023,
+      "accident_severity": "major",
+      "accidents": 1811
+    },
+    {
+      "year": 2023,
+      "accident_severity": "minor",
+      "accidents": 3386
+    },
+    {
+      "year": 2024,
+      "accident_severity": "fatal",
+      "accidents": 925
+    },
+    {
+      "year": 2024,
+      "accident_severity": "major",
+      "accidents": 1795
+    },
+    {
+      "year": 2024,
+      "accident_severity": "minor",
+      "accidents": 3341
+    },
+    {
+      "year": 2025,
+      "accident_severity": "fatal",
+      "accidents": 262
+    },
+    {
+      "year": 2025,
+      "accident_severity": "major",
+      "accidents": 489
+    },
+    {
+      "year": 2025,
+      "accident_severity": "minor",
+      "accidents": 983
+    }
+  ],
+  "monthlyTrend": [
+    {
+      "year": 2022,
+      "month": 1,
+      "accidents": 499
+    },
+    {
+      "year": 2022,
+      "month": 2,
+      "accidents": 474
+    },
+    {
+      "year": 2022,
+      "month": 3,
+      "accidents": 520
+    },
+    {
+      "year": 2022,
+      "month": 4,
+      "accidents": 527
+    },
+    {
+      "year": 2022,
+      "month": 5,
+      "accidents": 548
+    },
+    {
+      "year": 2022,
+      "month": 6,
+      "accidents": 510
+    },
+    {
+      "year": 2022,
+      "month": 7,
+      "accidents": 548
+    },
+    {
+      "year": 2022,
+      "month": 8,
+      "accidents": 483
+    },
+    {
+      "year": 2022,
+      "month": 9,
+      "accidents": 509
+    },
+    {
+      "year": 2022,
+      "month": 10,
+      "accidents": 484
+    },
+    {
+      "year": 2022,
+      "month": 11,
+      "accidents": 509
+    },
+    {
+      "year": 2022,
+      "month": 12,
+      "accidents": 506
+    },
+    {
+      "year": 2023,
+      "month": 1,
+      "accidents": 500
+    },
+    {
+      "year": 2023,
+      "month": 2,
+      "accidents": 469
+    },
+    {
+      "year": 2023,
+      "month": 3,
+      "accidents": 519
+    },
+    {
+      "year": 2023,
+      "month": 4,
+      "accidents": 509
+    },
+    {
+      "year": 2023,
+      "month": 5,
+      "accidents": 555
+    },
+    {
+      "year": 2023,
+      "month": 6,
+      "accidents": 475
+    },
+    {
+      "year": 2023,
+      "month": 7,
+      "accidents": 484
+    },
+    {
+      "year": 2023,
+      "month": 8,
+      "accidents": 541
+    },
+    {
+      "year": 2023,
+      "month": 9,
+      "accidents": 491
+    },
+    {
+      "year": 2023,
+      "month": 10,
+      "accidents": 506
+    },
+    {
+      "year": 2023,
+      "month": 11,
+      "accidents": 511
+    },
+    {
+      "year": 2023,
+      "month": 12,
+      "accidents": 528
+    },
+    {
+      "year": 2024,
+      "month": 1,
+      "accidents": 506
+    },
+    {
+      "year": 2024,
+      "month": 2,
+      "accidents": 475
+    },
+    {
+      "year": 2024,
+      "month": 3,
+      "accidents": 494
+    },
+    {
+      "year": 2024,
+      "month": 4,
+      "accidents": 489
+    },
+    {
+      "year": 2024,
+      "month": 5,
+      "accidents": 490
+    },
+    {
+      "year": 2024,
+      "month": 6,
+      "accidents": 527
+    },
+    {
+      "year": 2024,
+      "month": 7,
+      "accidents": 511
+    },
+    {
+      "year": 2024,
+      "month": 8,
+      "accidents": 564
+    },
+    {
+      "year": 2024,
+      "month": 9,
+      "accidents": 475
+    },
+    {
+      "year": 2024,
+      "month": 10,
+      "accidents": 526
+    },
+    {
+      "year": 2024,
+      "month": 11,
+      "accidents": 513
+    },
+    {
+      "year": 2024,
+      "month": 12,
+      "accidents": 491
+    },
+    {
+      "year": 2025,
+      "month": 1,
+      "accidents": 539
+    },
+    {
+      "year": 2025,
+      "month": 2,
+      "accidents": 447
+    },
+    {
+      "year": 2025,
+      "month": 3,
+      "accidents": 510
+    },
+    {
+      "year": 2025,
+      "month": 4,
+      "accidents": 238
+    }
+  ]
+}

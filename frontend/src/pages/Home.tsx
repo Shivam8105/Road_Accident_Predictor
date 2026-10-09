@@ -101,42 +101,42 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
   return (
     <div className="space-y-16 py-6">
       {/* 1. HERO SECTION (GSAP ANIMATED & NEXORA STYLED) */}
-      <div ref={heroRef} className="relative flex flex-col items-center text-center space-y-8 pt-4 pb-4 max-w-4xl mx-auto">
+      <div ref={heroRef} className="relative flex flex-col items-center text-center space-y-6 pt-6 pb-4 max-w-4xl mx-auto">
         {/* Glow ambient background */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[380px] bg-red-600/15 rounded-full blur-[130px] pointer-events-none -z-10" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none -z-10" />
 
         {/* Top Pill Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-red-500/30 text-xs font-semibold text-red-400 backdrop-blur-md shadow-lg shadow-red-500/10">
-          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-          <span>Next-Generation Road Safety Intelligence</span>
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-950/60 border border-indigo-500/30 text-xs font-medium text-indigo-300">
+          <span className="w-2 h-2 rounded-full bg-indigo-400" />
+          <span>Road Safety & Accident Intelligence Platform</span>
         </div>
 
         {/* Big Bold Headline */}
-        <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.15]">
-          Predict the Future of <br />
-          <span className="bg-gradient-to-r from-red-500 via-rose-500 to-red-600 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(239,68,68,0.4)]">
-            Traffic Safety & Intelligence
+        <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight leading-[1.15]">
+          Intelligent Road Safety Analytics <br />
+          <span className="text-indigo-400">
+            & Accident Risk Prediction
           </span>
         </h1>
 
         {/* Subtitle */}
-        <p className="text-sm sm:text-base lg:text-lg text-slate-300 max-w-2xl font-normal leading-relaxed">
-          AcciPredict empowers traffic authorities, urban planners, and researchers to evaluate ML models, simulate what-if scenario shifts, and map GIS accident risk hotspots.
+        <p className="text-sm sm:text-base text-slate-300 max-w-2xl font-normal leading-relaxed">
+          Evaluate severity models, simulate what-if safety interventions, and explore geographic accident risk hotspots across India.
         </p>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <button
             onClick={() => setActiveTab('predict')}
-            className="flex items-center gap-2 px-7 py-3.5 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 text-white font-bold text-sm shadow-xl shadow-red-600/35 transition-all hover:scale-105 cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-2 px-6 py-3 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm shadow-sm transition-all cursor-pointer whitespace-nowrap"
           >
-            <span>Get Started</span>
+            <span>Predict Severity</span>
             <ArrowRight className="w-4 h-4" />
           </button>
 
           <button
             onClick={() => setActiveTab('map')}
-            className="flex items-center gap-2 px-7 py-3.5 rounded-full bg-white/5 hover:bg-white/10 text-white border border-white/15 font-semibold text-sm backdrop-blur-md transition-all hover:scale-105 cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-2 px-6 py-3 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 font-medium text-sm transition-all cursor-pointer whitespace-nowrap"
           >
             <span>Explore GIS Map</span>
           </button>
@@ -147,14 +147,14 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
           {/* Card 1: AI Models */}
           <div 
             onClick={() => setActiveTab('models')}
-            className="glass-card p-5 rounded-2xl cursor-pointer group hover:border-red-500/40 relative overflow-hidden"
+            className="glass-card p-5 rounded-2xl cursor-pointer group hover:border-indigo-500/40 relative overflow-hidden"
           >
-            <div className="p-3 rounded-xl bg-red-950/60 border border-red-800/50 text-red-400 w-fit mb-3 group-hover:scale-110 transition-transform">
+            <div className="p-3 rounded-xl bg-indigo-950/60 border border-indigo-800/50 text-indigo-300 w-fit mb-3 group-hover:scale-110 transition-transform">
               <BrainCircuit className="w-5 h-5" />
             </div>
             <h3 className="font-heading text-base font-bold text-white mb-1 flex items-center justify-between">
               <span>AI Models</span>
-              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-red-400 transition-colors" />
+              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition-colors" />
             </h3>
             <p className="text-xs text-slate-400 leading-relaxed">
               Access 5 state-of-the-art ML classifiers (Random Forest, XGBoost, LightGBM) in one place.
@@ -164,14 +164,14 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
           {/* Card 2: What-If Simulator */}
           <div 
             onClick={() => setActiveTab('whatif')}
-            className="glass-card p-5 rounded-2xl cursor-pointer group hover:border-red-500/40 relative overflow-hidden"
+            className="glass-card p-5 rounded-2xl cursor-pointer group hover:border-indigo-500/40 relative overflow-hidden"
           >
-            <div className="p-3 rounded-xl bg-red-950/60 border border-red-800/50 text-red-400 w-fit mb-3 group-hover:scale-110 transition-transform">
+            <div className="p-3 rounded-xl bg-indigo-950/60 border border-indigo-800/50 text-indigo-300 w-fit mb-3 group-hover:scale-110 transition-transform">
               <SlidersHorizontal className="w-5 h-5" />
             </div>
             <h3 className="font-heading text-base font-bold text-white mb-1 flex items-center justify-between">
               <span>What-If Simulator</span>
-              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-red-400 transition-colors" />
+              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition-colors" />
             </h3>
             <p className="text-xs text-slate-400 leading-relaxed">
               Simulate weather, speed limits, and traffic density changes in real-time.
@@ -181,14 +181,14 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
           {/* Card 3: GIS Spatial Map */}
           <div 
             onClick={() => setActiveTab('map')}
-            className="glass-card p-5 rounded-2xl cursor-pointer group hover:border-red-500/40 relative overflow-hidden"
+            className="glass-card p-5 rounded-2xl cursor-pointer group hover:border-indigo-500/40 relative overflow-hidden"
           >
-            <div className="p-3 rounded-xl bg-red-950/60 border border-red-800/50 text-red-400 w-fit mb-3 group-hover:scale-110 transition-transform">
+            <div className="p-3 rounded-xl bg-indigo-950/60 border border-indigo-800/50 text-indigo-300 w-fit mb-3 group-hover:scale-110 transition-transform">
               <Map className="w-5 h-5" />
             </div>
             <h3 className="font-heading text-base font-bold text-white mb-1 flex items-center justify-between">
               <span>GIS Risk Map</span>
-              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-red-400 transition-colors" />
+              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition-colors" />
             </h3>
             <p className="text-xs text-slate-400 leading-relaxed">
               Gain actionable spatial insights from interactive geographic hotspot maps across India.
@@ -198,14 +198,14 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
           {/* Card 4: SHAP XAI Analytics */}
           <div 
             onClick={() => setActiveTab('explain')}
-            className="glass-card p-5 rounded-2xl cursor-pointer group hover:border-red-500/40 relative overflow-hidden"
+            className="glass-card p-5 rounded-2xl cursor-pointer group hover:border-indigo-500/40 relative overflow-hidden"
           >
-            <div className="p-3 rounded-xl bg-red-950/60 border border-red-800/50 text-red-400 w-fit mb-3 group-hover:scale-110 transition-transform">
+            <div className="p-3 rounded-xl bg-indigo-950/60 border border-indigo-800/50 text-indigo-300 w-fit mb-3 group-hover:scale-110 transition-transform">
               <HelpCircle className="w-5 h-5" />
             </div>
             <h3 className="font-heading text-base font-bold text-white mb-1 flex items-center justify-between">
               <span>SHAP XAI</span>
-              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-red-400 transition-colors" />
+              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition-colors" />
             </h3>
             <p className="text-xs text-slate-400 leading-relaxed">
               Understand exact positive and negative feature attributions behind every prediction.
@@ -217,8 +217,8 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
         <div ref={statsRef} className="w-full max-w-4xl glass-card p-4 rounded-full border border-white/10 flex flex-wrap items-center justify-around gap-6 text-center shadow-2xl">
           <div className="flex items-center gap-3 text-left">
             <div className="flex -space-x-2 overflow-hidden">
-              <div className="inline-block h-7 w-7 rounded-full bg-red-600 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white">AI</div>
-              <div className="inline-block h-7 w-7 rounded-full bg-rose-600 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white">ML</div>
+              <div className="inline-block h-7 w-7 rounded-full bg-indigo-600 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white">AI</div>
+              <div className="inline-block h-7 w-7 rounded-full bg-indigo-500 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white">ML</div>
               <div className="inline-block h-7 w-7 rounded-full bg-amber-600 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white">GIS</div>
             </div>
             <div className="text-xs">
@@ -228,7 +228,7 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
           </div>
 
           <div className="border-l border-white/10 pl-6 text-left">
-            <div className="font-heading text-lg font-black text-red-500">20,000+</div>
+            <div className="font-heading text-lg font-black text-indigo-400">20,000+</div>
             <div className="text-[10px] text-slate-400 font-medium">Dataset 1 Records</div>
           </div>
 
@@ -238,8 +238,8 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
           </div>
 
           <div className="border-l border-white/10 pl-6 text-left">
-            <div className="font-heading text-lg font-black text-red-500">15+</div>
-            <div className="text-[10px] text-slate-400 font-medium">Metro Hotspots</div>
+            <div className="font-heading text-lg font-black text-indigo-400">15+</div>
+            <div className="text-[10px] text-slate-400 font-medium font-medium">Metro Hotspots</div>
           </div>
 
           <div className="border-l border-white/10 pl-6 text-left hidden sm:block">
@@ -250,10 +250,10 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
       </div>
 
       {/* 2. INTERACTIVE LIVE RISK ESTIMATOR WIDGET (HOMEPAGE INTERACTIVE PREVIEW) */}
-      <div className="max-w-5xl mx-auto glass-card p-6 sm:p-8 rounded-3xl border border-red-500/25 space-y-6 relative overflow-hidden">
+      <div className="max-w-5xl mx-auto glass-card p-6 sm:p-8 rounded-3xl border border-indigo-500/25 space-y-6 relative overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/80 border border-red-800 text-red-400 text-[11px] font-bold mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-950/80 border border-indigo-800 text-indigo-300 text-[11px] font-bold mb-2">
               <Zap className="w-3.5 h-3.5" /> Interactive Sandbox Widget
             </div>
             <h2 className="font-heading text-2xl font-bold text-white">Live Risk Severity Estimator</h2>
@@ -262,7 +262,7 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
 
           <button
             onClick={() => setActiveTab('predict')}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-all cursor-pointer w-fit"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all cursor-pointer w-fit"
           >
             <span>Open Full Predictor</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -275,7 +275,7 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
             <div>
               <div className="flex justify-between text-slate-300 font-semibold mb-1.5">
                 <span>Vehicle Speed ({demoSpeed} km/h)</span>
-                <span className={demoSpeed > 90 ? 'text-red-400 font-bold' : 'text-slate-400'}>
+                <span className={demoSpeed > 90 ? 'text-indigo-400 font-bold' : 'text-slate-400'}>
                   {demoSpeed > 90 ? 'High Risk' : 'Standard'}
                 </span>
               </div>
@@ -285,7 +285,7 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
                 max="140"
                 value={demoSpeed}
                 onChange={(e) => setDemoSpeed(parseInt(e.target.value))}
-                className="w-full accent-red-500 cursor-pointer"
+                className="w-full accent-indigo-500 cursor-pointer"
               />
             </div>
 
@@ -299,7 +299,7 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
                       type="button"
                       onClick={() => setDemoWeather(w)}
                       className={`py-1.5 px-2 rounded-lg font-bold uppercase text-[10px] cursor-pointer border transition-all ${
-                        demoWeather === w ? 'bg-red-600 text-white border-red-400 shadow-md' : 'bg-white/5 text-slate-400 border-white/10 hover:text-white'
+                        demoWeather === w ? 'bg-indigo-600 text-white border-indigo-400 shadow-md' : 'bg-white/5 text-slate-400 border-white/10 hover:text-white'
                       }`}
                     >
                       {w}
@@ -317,7 +317,7 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
                       type="button"
                       onClick={() => setDemoDensity(d)}
                       className={`py-1.5 px-2 rounded-lg font-bold uppercase text-[10px] cursor-pointer border transition-all ${
-                        demoDensity === d ? 'bg-red-600 text-white border-red-400 shadow-md' : 'bg-white/5 text-slate-400 border-white/10 hover:text-white'
+                        demoDensity === d ? 'bg-indigo-600 text-white border-indigo-400 shadow-md' : 'bg-white/5 text-slate-400 border-white/10 hover:text-white'
                       }`}
                     >
                       {d}
@@ -372,7 +372,7 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
       <div ref={workflowRef} className="max-w-5xl mx-auto space-y-8">
         <div className="text-center space-y-2">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/5 text-slate-400 border border-white/10 text-xs font-semibold">
-            <Compass className="w-3.5 h-3.5 text-red-400" /> End-to-End Workflow
+            <Compass className="w-3.5 h-3.5 text-indigo-400" /> End-to-End Workflow
           </div>
           <h2 className="font-heading text-3xl font-extrabold text-white">How AcciPredict Works</h2>
           <p className="text-xs text-slate-400">Systematic multi-stage inference & explainable analytics pipeline</p>
@@ -380,7 +380,7 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="glass-card p-5 rounded-2xl space-y-3 relative">
-            <div className="font-heading text-3xl font-black text-red-500/40">01</div>
+            <div className="font-heading text-3xl font-black text-indigo-500/40">01</div>
             <h3 className="font-heading text-base font-bold text-white">Data Ingestion</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
               Inhales 17 spatial, weather, road type, traffic signal & temporal features without target leakage metrics.
@@ -388,7 +388,7 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
           </div>
 
           <div className="glass-card p-5 rounded-2xl space-y-3 relative">
-            <div className="font-heading text-3xl font-black text-red-500/40">02</div>
+            <div className="font-heading text-3xl font-black text-indigo-500/40">02</div>
             <h3 className="font-heading text-base font-bold text-white">ML Inference</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
               Evaluates Random Forest, XGBoost & LightGBM classifiers to generate class probability distributions.
@@ -396,7 +396,7 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
           </div>
 
           <div className="glass-card p-5 rounded-2xl space-y-3 relative">
-            <div className="font-heading text-3xl font-black text-red-500/40">03</div>
+            <div className="font-heading text-3xl font-black text-indigo-500/40">03</div>
             <h3 className="font-heading text-base font-bold text-white">SHAP Attribution</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
               Computes game-theoretic Shapley values to highlight exact positive & negative severity factors.
@@ -404,7 +404,7 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
           </div>
 
           <div className="glass-card p-5 rounded-2xl space-y-3 relative">
-            <div className="font-heading text-3xl font-black text-red-500/40">04</div>
+            <div className="font-heading text-3xl font-black text-indigo-500/40">04</div>
             <h3 className="font-heading text-base font-bold text-white">What-If Shift</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
               Simulates real-time parameter changes to test how risk probabilities decrease under safety interventions.
@@ -415,12 +415,12 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
 
       {/* 4. DATASET ISOLATION ARCHITECTURE SECTION */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-        <div className="glass-card p-6 sm:p-8 rounded-3xl border border-red-500/20 space-y-4">
+        <div className="glass-card p-6 sm:p-8 rounded-3xl border border-indigo-500/25 space-y-4">
           <div className="flex items-center justify-between">
-            <div className="p-2.5 rounded-xl bg-red-950/80 border border-red-800/60 text-red-400">
+            <div className="p-2.5 rounded-xl bg-indigo-950/80 border border-indigo-800/60 text-indigo-300">
               <Database className="w-5 h-5" />
             </div>
-            <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-red-950 text-red-400 border border-red-800">
+            <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-indigo-950 text-indigo-300 border border-indigo-800">
               PRIMARY ML & GEOGRAPHY
             </span>
           </div>
@@ -477,10 +477,10 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
               >
                 <button
                   onClick={() => setOpenFaq(isOpen ? null : index)}
-                  className="w-full p-5 text-left flex items-center justify-between text-sm font-semibold text-white cursor-pointer hover:text-red-400 transition-colors"
+                  className="w-full p-5 text-left flex items-center justify-between text-sm font-semibold text-white cursor-pointer hover:text-indigo-400 transition-colors"
                 >
                   <span>{faq.q}</span>
-                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180 text-red-500' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180 text-indigo-400' : ''}`} />
                 </button>
                 {isOpen && (
                   <div className="px-5 pb-5 text-xs text-slate-300 leading-relaxed border-t border-white/5 pt-3">
