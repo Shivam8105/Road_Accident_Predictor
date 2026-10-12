@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { ArrowRight } from "lucide-react";
 import type { NavTab } from "../components/Navbar";
 
@@ -25,36 +25,18 @@ const VisualAsset: React.FC<VisualAssetProps> = ({
 	mediaClassName,
 	priority = false,
 }) => {
-	const [imageMissing, setImageMissing] = useState(false);
-	const filename = src.split("/").pop();
-
 	return (
-		<figure className="m-0" data-asset={src}>
+		<figure className="m-0">
 			<div
 				className={`relative overflow-hidden rounded-[12px] border border-line bg-slate-100 ${mediaClassName}`}
 			>
-				{!imageMissing ? (
-					<img
-						className="block size-full object-cover"
-						src={src}
-						alt={alt}
-						loading={priority ? "eager" : "lazy"}
-						fetchPriority={priority ? "high" : "auto"}
-						onError={() => setImageMissing(true)}
-					/>
-				) : (
-					<div
-						className="flex size-full min-h-[inherit] flex-col justify-end p-6 text-slate-700 sm:p-8"
-						role="img"
-						aria-label={alt}
-					>
-						<span className="text-[13px] font-semibold text-ink">Visual ready for replacement</span>
-						<span className="mt-2 max-w-[34ch] text-[13px] leading-5 text-muted">{alt}</span>
-						<code className="mt-4 w-fit border-b border-slate-400 pb-1 text-[11px] text-slate-600">
-							{filename}
-						</code>
-					</div>
-				)}
+				<img
+					className="block size-full object-cover"
+					src={src}
+					alt={alt}
+					loading={priority ? "eager" : "lazy"}
+					fetchPriority={priority ? "high" : "auto"}
+				/>
 			</div>
 			<figcaption className="mt-3 text-[13px] leading-5 text-muted">{caption}</figcaption>
 		</figure>
@@ -132,7 +114,7 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
 					</div>
 
 					<VisualAsset
-						src="/visuals/landing-hero-road.webp"
+						src="/visuals/hero-road.webp"
 						alt="A high-angle view of a modern Indian road junction with moving traffic"
 						caption="A road-level view of the conditions that shape each prediction."
 						mediaClassName="aspect-[5/4] min-h-[340px] sm:min-h-[440px] lg:min-h-[min(64vh,640px)]"
@@ -181,7 +163,7 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
 					</div>
 					<div className="grid items-end gap-10 lg:grid-cols-[minmax(0,1.6fr)_minmax(270px,0.6fr)] lg:gap-[clamp(2.5rem,6vw,5rem)]">
 						<VisualAsset
-							src="/visuals/landing-map-overview.webp"
+							src="/visuals/map-overview.webp"
 							alt="AcciPredict map showing historical accident concentrations across India"
 							caption="Historical incidents remain explorable by place, severity, cause, and conditions."
 							mediaClassName="aspect-[10/7] min-h-[340px] sm:min-h-[450px] lg:min-h-[560px]"
@@ -261,7 +243,7 @@ export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
 					className={`${container} grid items-center gap-12 lg:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)] lg:gap-[clamp(3.5rem,8vw,7rem)]`}
 				>
 					<VisualAsset
-						src="/visuals/landing-explanation.webp"
+						src="/visuals/explanation.webp"
 						alt="AcciPredict explanation view with clear contributing road and weather factors"
 						caption="Contributing factors show how each input moved an individual result."
 						mediaClassName="aspect-[7/6] min-h-[340px] sm:min-h-[440px] lg:min-h-[500px]"
