@@ -1,219 +1,165 @@
-import React, { useState, useEffect } from 'react';
-import type { SHAPExplanation, GlobalSHAPItem } from '../types';
-import { 
-  HelpCircle, TrendingUp, TrendingDown, RefreshCw, BarChart2
-} from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import React, { useCallback, useEffect, useState } from 'react';
+import type { GlobalSHAPItem, SHAPExplanation } from '../types';
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { RefreshCw, TrendingDown, TrendingUp } from 'lucide-react';
+import { FALLBACK_GLOBAL_SHAP, FALLBACK_SHAP_EXPLANATION, safeFetchJson } from '../api/client';
+import { ui } from '../ui';
 
-import { safeFetchJson, FALLBACK_SHAP_EXPLANATION, FALLBACK_GLOBAL_SHAP } from '../api/client';
+const tooltipStyle = {
+  backgroundColor: '#fcfdff',
+  borderColor: '#d9e1ec',
+  borderRadius: '10px',
+  fontSize: '12px',
+  color: '#101828',
+};
+
+const readableFeature = (feature: string) =>
+  feature.replace('cat__', '').replace('num__', '').replaceAll('_', ' ');
 
 export const ExplainPrediction: React.FC = () => {
-  const [sampleInput] = useState({
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    latitude: 19.076,
-    longitude: 72.877,
-    hour: 22,
-    day_of_week: 'Friday',
-    is_weekend: 0,
-    road_type: 'highway',
-    lanes: 4,
-    traffic_signal: 0,
-    weather: 'rain',
-    visibility: 'low',
-    temperature: 26,
-    traffic_density: 'high',
-    cause: 'overspeeding',
-    is_peak_hour: 1,
-    festival: 'None'
-  });
-
   const [shapData, setShapData] = useState<SHAPExplanation>(FALLBACK_SHAP_EXPLANATION);
   const [globalShap, setGlobalShap] = useState<GlobalSHAPItem[]>(FALLBACK_GLOBAL_SHAP);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchExplanations();
-  }, []);
+  const fetchExplanations = useCallback(async () => {
+    const sampleInput = {
+      city: 'Mumbai', state: 'Maharashtra', latitude: 19.076, longitude: 72.877,
+      hour: 22, day_of_week: 'Friday', is_weekend: 0, road_type: 'highway', lanes: 4,
+      traffic_signal: 0, weather: 'rain', visibility: 'low', temperature: 26,
+      traffic_density: 'high', cause: 'overspeeding', is_peak_hour: 1, festival: 'None',
+    };
 
-  const fetchExplanations = async () => {
-    setLoading(true);
     try {
-      const [resInd, resGlobal] = await Promise.all([
+      const [individual, global] = await Promise.all([
         safeFetchJson<SHAPExplanation>(
           '/api/ml/explain',
-          {
-            method: 'POST',
-            body: JSON.stringify(sampleInput)
-          },
-          FALLBACK_SHAP_EXPLANATION
+          { method: 'POST', body: JSON.stringify(sampleInput) },
+          FALLBACK_SHAP_EXPLANATION,
         ),
-        safeFetchJson<any>(
+        safeFetchJson<{ importances: GlobalSHAPItem[] }>(
           '/api/ml/global-shap',
           undefined,
-          { importances: FALLBACK_GLOBAL_SHAP }
-        )
+          { importances: FALLBACK_GLOBAL_SHAP },
+        ),
       ]);
 
-      if (resInd && resInd.increasing_factors) {
-        setShapData(resInd);
-      }
-      if (resGlobal && Array.isArray(resGlobal.importances)) {
-        setGlobalShap(resGlobal.importances.slice(0, 10));
-      }
-    } catch (e) {
-      console.error('Error fetching SHAP explanations:', e);
+      if (individual?.increasing_factors) setShapData(individual);
+      if (Array.isArray(global?.importances)) setGlobalShap(global.importances.slice(0, 10));
+    } catch (error) {
+      console.error('Error fetching SHAP explanations:', error);
       setShapData(FALLBACK_SHAP_EXPLANATION);
       setGlobalShap(FALLBACK_GLOBAL_SHAP);
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- state updates happen after the explanation requests resolve.
+    void fetchExplanations();
+  }, [fetchExplanations]);
+
+  const refreshExplanations = () => {
+    setLoading(true);
+    void fetchExplanations();
   };
 
-  if (loading || !shapData) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-3 text-slate-300 font-medium text-xs">
-          <RefreshCw className="w-5 h-5 animate-spin text-indigo-400" />
-          <span>Computing SHAP feature attributions...</span>
-        </div>
+      <div className={ui.loading}>
+        <div><RefreshCw size={19} className="animate-spin" /> Reading feature influence...</div>
       </div>
     );
   }
 
+  const maxImpact = Math.max(...shapData.top_contributions.map((item) => Math.abs(item.impact)), 1);
+
   return (
-    <div className="space-y-6 py-2">
-      <div className="border-b border-slate-800 pb-4">
-        <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2.5 tracking-tight">
-          <HelpCircle className="w-6 h-6 text-indigo-400" />
-          <span>SHAP Feature Attribution Analysis</span>
-        </h1>
-        <p className="text-xs text-slate-400 mt-1">
-          Feature importance & individual prediction attributions computed directly from model coefficients and SHAP values.
-        </p>
-      </div>
-
-      {/* INDIVIDUAL EXPLANATION SECTION */}
-      <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-5">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-100">Local Prediction Explanation</h3>
-            <p className="text-xs text-slate-400">Feature impact scores for the active scenario</p>
-          </div>
-          <span className="text-[11px] font-medium px-2.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-            Model: {shapData.model_used}
-          </span>
+    <div className={ui.page}>
+      <header className={ui.header}>
+        <div>
+          <h1>Why did the model decide this?</h1>
+          <p>Read the conditions that pushed one forecast higher or lower, then compare them with the model’s broader behavior.</p>
         </div>
+        <div className={ui.headerActions}>
+          <button className={ui.button} type="button" onClick={refreshExplanations}>
+            <RefreshCw size={16} /> Recalculate
+          </button>
+        </div>
+      </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* INCREASING FACTORS */}
-          <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5">
-            <h4 className="text-xs font-semibold text-rose-400 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
-              <span>Factors Increasing Predicted Severity</span>
-            </h4>
-            <ul className="space-y-1.5 text-xs text-slate-300">
-              {shapData.increasing_factors.map((factor, idx) => (
-                <li key={idx} className="flex items-start gap-2">
-                  <span className="text-rose-400 font-bold">•</span>
-                  <span>{factor}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+      <section className="grid items-start gap-12 py-6 lg:grid-cols-[minmax(280px,0.72fr)_minmax(520px,1.28fr)] lg:gap-[clamp(3rem,8vw,6.75rem)] lg:pb-16" aria-labelledby="local-explanation-title">
+        <div>
+          <h2 className="m-0 max-w-[13ch] text-[clamp(2.5rem,4.7vw,4.4rem)] font-semibold leading-none tracking-[-0.055em] text-ink lg:max-w-[10ch]" id="local-explanation-title">This prediction, unpacked.</h2>
+          <p className="mt-5 max-w-[430px] text-[14px] leading-6 text-muted">The current example uses {shapData.model_used}. Each line shows direction and relative strength, not causation.</p>
 
-          {/* DECREASING FACTORS */}
-          <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5">
-            <h4 className="text-xs font-semibold text-emerald-400 flex items-center gap-2">
-              <TrendingDown className="w-4 h-4" />
-              <span>Factors Decreasing Predicted Severity</span>
-            </h4>
-            <ul className="space-y-1.5 text-xs text-slate-300">
-              {shapData.decreasing_factors.map((factor, idx) => (
-                <li key={idx} className="flex items-start gap-2">
-                  <span className="text-emerald-400 font-bold">•</span>
-                  <span>{factor}</span>
-                </li>
-              ))}
-            </ul>
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 [&>div]:flex [&>div]:flex-col [&>div]:items-start [&>div]:gap-2 [&>div]:border-t [&>div]:border-line [&>div]:pt-4 [&_svg]:mb-1 [&_svg]:text-brand [&_strong]:text-[13px] [&_strong]:text-ink [&_span]:text-[12px] [&_span]:leading-5 [&_span]:text-muted">
+            <div>
+              <TrendingUp size={19} strokeWidth={1.7} />
+              <strong>Raised severity</strong>
+              {shapData.increasing_factors.slice(0, 3).map((factor) => <span key={factor}>{factor}</span>)}
+            </div>
+            <div>
+              <TrendingDown size={19} strokeWidth={1.7} />
+              <strong>Reduced severity</strong>
+              {shapData.decreasing_factors.slice(0, 3).map((factor) => <span key={factor}>{factor}</span>)}
+            </div>
           </div>
         </div>
 
-        {/* FEATURE ATTRIBUTION IMPACT BARS WITH PROGRESS METERS */}
-        <div className="space-y-3 pt-2">
-          <h4 className="text-xs font-bold text-white uppercase tracking-wider">Feature Contribution Impact Meters</h4>
-          <div className="space-y-2.5">
-            {shapData.top_contributions.map((item, idx) => {
-              const absVal = Math.min(100, Math.abs(item.impact * 25));
-              const isPositive = item.impact > 0;
-              return (
-                <div key={idx} className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-mono text-slate-200 font-semibold">
-                      {item.feature.replace('cat__', '').replace('num__', '').replace('_', ' ').toUpperCase()}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className={`font-bold font-mono ${isPositive ? 'text-rose-400' : 'text-emerald-400'}`}>
-                        {isPositive ? `+${item.impact}` : item.impact}
-                      </span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
-                        isPositive ? 'bg-rose-950/80 text-rose-300 border border-rose-800/60' : 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/60'
-                      }`}>
-                        {isPositive ? 'Increases Risk' : 'Reduces Risk'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-white/5 flex">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ${
-                        isPositive ? 'bg-gradient-to-r from-rose-600 to-red-500' : 'bg-gradient-to-r from-emerald-600 to-emerald-400'
-                      }`}
-                      style={{ width: `${Math.max(15, absVal)}%` }}
-                    />
-                  </div>
+        <div className="pt-1" aria-label="Feature contribution values">
+          {shapData.top_contributions.map((item) => {
+            const positive = item.impact > 0;
+            const size = `${Math.max(9, (Math.abs(item.impact) / maxImpact) * 48)}%`;
+
+            return (
+              <div className="grid min-h-12 grid-cols-[minmax(100px,0.7fr)_minmax(150px,1fr)_52px] items-center gap-2.5 border-b border-line sm:grid-cols-[minmax(130px,0.8fr)_minmax(240px,1.4fr)_68px] sm:gap-[18px]" key={item.feature}>
+                <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-semibold capitalize text-slate-700">{readableFeature(item.feature)}</span>
+                <div className="relative h-[18px] before:absolute before:inset-y-0 before:left-1/2 before:w-px before:bg-slate-300" aria-hidden="true">
+                  <i
+                    className={`absolute top-1 h-2.5 rounded-[3px] ${positive ? 'left-1/2 bg-danger' : 'right-1/2 bg-brand'}`}
+                    style={{ width: size }}
+                  />
                 </div>
-              );
-            })}
+                <strong className={`text-right text-[13px] font-bold ${positive ? 'text-danger' : 'text-brand'}`}>
+                  {positive ? '+' : ''}{item.impact}
+                </strong>
+              </div>
+            );
+          })}
+          <div className="ml-[110px] mr-[62px] mt-3 flex justify-between gap-4 text-[11px] text-muted sm:ml-[148px] sm:mr-[86px]">
+            <span>Reduces predicted severity</span>
+            <span>Raises predicted severity</span>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* GLOBAL FEATURE IMPORTANCE CHART */}
-      <div className="bg-slate-900/60 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <section className={`${ui.panel} mt-2.5`} aria-labelledby="global-explanation-title">
+        <div className={ui.panelHeader}>
           <div>
-            <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-              <BarChart2 className="w-4 h-4 text-indigo-400" />
-              <span>Global Feature Importance Ranking (Dataset 1 Benchmark)</span>
-            </h3>
-            <p className="text-xs text-slate-400">Aggregated Shapley value magnitudes across 20,000 incident samples</p>
+            <h2 id="global-explanation-title">What matters across the dataset</h2>
+            <p>Average SHAP magnitude across the primary 20,000-record dataset.</p>
           </div>
-          <span className="text-xs font-mono text-indigo-300 bg-indigo-950/80 px-3 py-1 rounded-xl border border-indigo-800/60">
-            SHAP Summary
-          </span>
         </div>
-
-        <div className="h-80 w-full">
-          <ResponsiveContainer width="100%" height={290} minHeight={290}>
-            <BarChart data={globalShap} layout="vertical" margin={{ top: 10, right: 30, left: 110, bottom: 10 }}>
-              <XAxis type="number" stroke="#64748b" fontSize={11} />
-              <YAxis 
-                type="category" 
-                dataKey="feature" 
-                stroke="#94a3b8" 
-                fontSize={11} 
-                tickFormatter={(val) => val.replace('cat__', '').replace('num__', '').replace('_', ' ')}
+        <div className={`${ui.panelBody} ${ui.chart}`}>
+          <ResponsiveContainer width="100%" height={330} minHeight={330}>
+            <BarChart data={globalShap} layout="vertical" margin={{ top: 8, right: 24, left: 118, bottom: 8 }}>
+              <XAxis type="number" stroke="#7a8799" fontSize={11} axisLine={false} tickLine={false} />
+              <YAxis
+                type="category"
+                dataKey="feature"
+                stroke="#667085"
+                fontSize={11}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={readableFeature}
               />
-              <Tooltip contentStyle={{ backgroundColor: '#09090d', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '12px', color: '#fff' }} />
-              <Bar dataKey="importance" name="Global Importance" radius={[0, 6, 6, 0]}>
-                {globalShap.map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={['#6366f1', '#8b5cf6', '#a855f7', '#06b6d4', '#10b981', '#3b82f6'][index % 6]} />
-                ))}
-              </Bar>
+              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: '#f1f5fa' }} />
+              <Bar dataKey="importance" name="Average importance" fill="#175cd3" radius={[0, 5, 5, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

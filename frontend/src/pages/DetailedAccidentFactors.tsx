@@ -1,184 +1,181 @@
-import React, { useEffect, useState } from 'react';
-import type { Dataset2Analytics } from '../types';
-import { 
-  Layers, UserCheck, Truck, Route, Sun, AlertTriangle, Users, RefreshCw, AlertCircle
+import React, { useCallback, useEffect, useState } from 'react';
+import type { Dataset2Analytics, Dataset2FactorItem } from '../types';
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+  AlertCircle,
+  AlertTriangle,
+  RefreshCw,
+  Route,
+  Sun,
+  Truck,
+  UserCheck,
+  Users,
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { FALLBACK_DATASET2_ANALYTICS, safeFetchJson } from '../api/client';
+import { ui } from '../ui';
 
-import { safeFetchJson, FALLBACK_DATASET2_ANALYTICS } from '../api/client';
+type FactorTab = 'driver' | 'vehicle' | 'road' | 'environment' | 'accident' | 'casualty';
+
+const tabs: Array<{ id: FactorTab; label: string; description: string; icon: React.ReactNode }> = [
+  { id: 'driver', label: 'Driver characteristics', description: 'Age and driving experience', icon: <UserCheck size={17} /> },
+  { id: 'vehicle', label: 'Vehicle factors', description: 'Type and recorded defects', icon: <Truck size={17} /> },
+  { id: 'road', label: 'Road conditions', description: 'Surface and alignment', icon: <Route size={17} /> },
+  { id: 'environment', label: 'Environment', description: 'Light and surrounding conditions', icon: <Sun size={17} /> },
+  { id: 'accident', label: 'Collision dynamics', description: 'Reported causes', icon: <AlertTriangle size={17} /> },
+  { id: 'casualty', label: 'Casualty profile', description: 'Recorded casualty classes', icon: <Users size={17} /> },
+];
+
+const tooltipStyle = {
+  backgroundColor: '#fcfdff',
+  borderColor: '#d9e1ec',
+  borderRadius: '10px',
+  fontSize: '12px',
+  color: '#101828',
+};
+
+interface FactorChartProps {
+  title: string;
+  description: string;
+  data: Dataset2FactorItem[];
+  layout?: 'horizontal' | 'vertical';
+  color?: string;
+}
+
+const FactorChart: React.FC<FactorChartProps> = ({ title, description, data, layout = 'horizontal', color = '#175cd3' }) => (
+  <article className={ui.panel}>
+    <div className={ui.panelHeader}>
+      <div><h3>{title}</h3><p>{description}</p></div>
+    </div>
+    <div className={`${ui.panelBody} ${ui.chart}`}>
+      <ResponsiveContainer width="100%" height={280} minHeight={280}>
+        <BarChart
+          data={data}
+          layout={layout}
+          margin={layout === 'vertical' ? { left: 90, right: 16, top: 8, bottom: 8 } : { left: -10, right: 12, top: 8, bottom: 8 }}
+        >
+          {layout === 'vertical' ? (
+            <>
+              <XAxis type="number" stroke="#7a8799" fontSize={11} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="category" stroke="#667085" fontSize={11} axisLine={false} tickLine={false} />
+            </>
+          ) : (
+            <>
+              <XAxis dataKey="category" stroke="#667085" fontSize={11} axisLine={false} tickLine={false} />
+              <YAxis stroke="#7a8799" fontSize={11} axisLine={false} tickLine={false} />
+            </>
+          )}
+          <Tooltip contentStyle={tooltipStyle} cursor={{ fill: '#f1f5fa' }} />
+          <Bar dataKey="count" fill={color} radius={layout === 'vertical' ? [0, 5, 5, 0] : [5, 5, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  </article>
+);
 
 export const DetailedAccidentFactors: React.FC = () => {
   const [data, setData] = useState<Dataset2Analytics>(FALLBACK_DATASET2_ANALYTICS);
-  const [activeTab, setActiveTab] = useState<'driver' | 'vehicle' | 'road' | 'environment' | 'accident' | 'casualty'>('driver');
-  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<FactorTab>('driver');
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchDataset2Analytics();
-  }, []);
-
-  const fetchDataset2Analytics = async () => {
-    setLoading(true);
+  const fetchDataset2Analytics = useCallback(async () => {
     try {
-      const resData = await safeFetchJson<Dataset2Analytics>(
+      const response = await safeFetchJson<Dataset2Analytics>(
         '/api/dataset2/analytics',
         undefined,
-        FALLBACK_DATASET2_ANALYTICS
+        FALLBACK_DATASET2_ANALYTICS,
       );
-      if (resData && resData.driver_factors) {
-        setData(resData);
-      }
-    } catch (e) {
-      console.error('Error fetching Dataset 2 analytics:', e);
+      if (response?.driver_factors) setData(response);
+    } catch (error) {
+      console.error('Error fetching Dataset 2 analytics:', error);
       setData(FALLBACK_DATASET2_ANALYTICS);
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- state updates happen after the dataset request resolves.
+    void fetchDataset2Analytics();
+  }, [fetchDataset2Analytics]);
+
+  const refreshFactors = () => {
+    setLoading(true);
+    void fetchDataset2Analytics();
   };
 
-  if (loading && !data) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-3 text-slate-300 font-medium text-xs">
-          <RefreshCw className="w-5 h-5 animate-spin text-indigo-400" />
-          <span>Loading Dataset 2 detailed factors...</span>
-        </div>
-      </div>
-    );
+  if (loading) {
+    return <div className={ui.loading}><div><RefreshCw size={19} className="animate-spin" /> Loading detailed factors...</div></div>;
   }
 
+  const activeMeta = tabs.find((tab) => tab.id === activeTab) ?? tabs[0];
+  const singleChartData =
+    activeTab === 'road' ? data.road_factors.surface_type
+      : activeTab === 'environment' ? data.environmental_factors.light_conditions
+        : activeTab === 'accident' ? data.accident_factors.cause_of_accident
+          : data.casualty_factors.casualty_class;
+
   return (
-    <div className="space-y-6 py-2">
-      <div className="border-b border-slate-800 pb-4">
-        <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2.5 tracking-tight">
-          <Layers className="w-6 h-6 text-indigo-400" />
-          <span>Detailed Accident Factors (Dataset 2)</span>
-        </h1>
-        <p className="text-xs text-slate-400 mt-1">
-          Independent factor analysis covering driver characteristics, vehicle service age, road surface conditions, and casualty metrics (Road.csv)
-        </p>
-      </div>
-
-      {/* INDEPENDENCE NOTICE */}
-      <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-start gap-2.5 text-xs text-slate-300">
-        <AlertCircle className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+    <div className={ui.page}>
+      <header className={ui.header}>
         <div>
-          <strong className="font-semibold text-slate-200">Dataset Isolation Note:</strong>
-          <span className="ml-1 text-slate-400">
-            {data.metadata.imbalance_warning}
-          </span>
+          <h1>Look beyond the crash count.</h1>
+          <p>Explore driver, vehicle, road, environment, collision, and casualty factors from the independent detailed dataset.</p>
         </div>
+        <div className={ui.headerActions}>
+          <button className={ui.button} type="button" onClick={refreshFactors}><RefreshCw size={16} /> Refresh data</button>
+        </div>
+      </header>
+
+      <div className={`${ui.note} mb-7`}>
+        <AlertCircle size={18} />
+        <div><strong>Kept separate by design.</strong> {data.metadata.imbalance_warning}</div>
       </div>
 
-      {/* TABS HEADER */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-800">
-        {[
-          { id: 'driver', label: 'Driver Characteristics', icon: <UserCheck className="w-3.5 h-3.5" /> },
-          { id: 'vehicle', label: 'Vehicle Factors', icon: <Truck className="w-3.5 h-3.5" /> },
-          { id: 'road', label: 'Road Surface & Alignment', icon: <Route className="w-3.5 h-3.5" /> },
-          { id: 'environment', label: 'Environmental Conditions', icon: <Sun className="w-3.5 h-3.5" /> },
-          { id: 'accident', label: 'Collision Dynamics', icon: <AlertTriangle className="w-3.5 h-3.5" /> },
-          { id: 'casualty', label: 'Casualty Demographics', icon: <Users className="w-3.5 h-3.5" /> },
-        ].map(t => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id as any)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === t.id ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-slate-200'
-            }`}
-          >
-            {t.icon}
-            <span>{t.label}</span>
-          </button>
-        ))}
+      <div className="grid items-start gap-8 lg:grid-cols-[245px_minmax(0,1fr)] lg:gap-[clamp(2rem,6vw,4.875rem)]">
+        <aside className="grid border-t border-line sm:grid-cols-3 lg:sticky lg:top-24 lg:grid-cols-1" aria-label="Factor categories">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              className={`grid w-full grid-cols-[28px_minmax(0,1fr)] items-start gap-2.5 border-0 border-b border-line bg-transparent px-2.5 py-3.5 text-left text-muted transition hover:bg-surface hover:text-ink lg:border-l-[3px] ${activeTab === tab.id ? 'bg-brand-soft text-brand-deep shadow-[inset_0_-2px_0_#175cd3] lg:border-l-brand lg:shadow-none' : 'lg:border-l-transparent'} ${ui.focus}`}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+            >
+              <span className="grid place-items-center pt-px">{tab.icon}</span>
+              <span className="grid gap-0.5"><strong className="text-[13px] font-semibold">{tab.label}</strong><small className="text-[11px] leading-4 text-muted">{tab.description}</small></span>
+            </button>
+          ))}
+        </aside>
+
+        <section className="min-w-0" aria-live="polite">
+          <div className="mb-5 flex items-center gap-3">
+            <span className="grid size-[38px] place-items-center rounded-[11px] bg-brand-soft text-brand">{activeMeta.icon}</span>
+            <div><h2 className="m-0 text-[22px] font-semibold tracking-[-0.025em]">{activeMeta.label}</h2><p className="mt-1 text-[12px] text-muted">{activeMeta.description}</p></div>
+          </div>
+
+          {activeTab === 'driver' && (
+            <div className="grid gap-5 md:grid-cols-2">
+              <FactorChart title="Age bands" description="Recorded drivers grouped by age." data={data.driver_factors.age_band} />
+              <FactorChart title="Driving experience" description="Years of experience reported for each driver." data={data.driver_factors.experience} color="#6d8fc3" />
+            </div>
+          )}
+
+          {activeTab === 'vehicle' && (
+            <div className="grid gap-5 md:grid-cols-2">
+              <FactorChart title="Vehicle types" description="Vehicle categories represented in the records." data={data.vehicle_factors.vehicle_type} layout="vertical" />
+              <FactorChart title="Vehicle defects" description="Mechanical conditions noted in the dataset." data={data.vehicle_factors.defects} color="#b42318" />
+            </div>
+          )}
+
+          {!['driver', 'vehicle'].includes(activeTab) && (
+            <FactorChart
+              title={`${activeMeta.label} distribution`}
+              description="Counts for the selected factor category."
+              data={singleChartData}
+              layout={activeTab === 'accident' ? 'vertical' : 'horizontal'}
+            />
+          )}
+        </section>
       </div>
-
-      {/* TAB CONTENT: DRIVER */}
-      {activeTab === 'driver' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-3">
-            <h3 className="text-sm font-semibold text-slate-100">Driver Age Band Distribution</h3>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height={240} minHeight={240}>
-                <BarChart data={data.driver_factors.age_band}>
-                  <XAxis dataKey="category" stroke="#64748b" fontSize={11} />
-                  <YAxis stroke="#64748b" fontSize={11} />
-                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.5rem', fontSize: '12px' }} />
-                  <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-3">
-            <h3 className="text-sm font-semibold text-slate-100">Driving Experience Distribution</h3>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height={240} minHeight={240}>
-                <BarChart data={data.driver_factors.experience}>
-                  <XAxis dataKey="category" stroke="#64748b" fontSize={11} />
-                  <YAxis stroke="#64748b" fontSize={11} />
-                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.5rem', fontSize: '12px' }} />
-                  <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB CONTENT: VEHICLE */}
-      {activeTab === 'vehicle' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-3">
-            <h3 className="text-sm font-semibold text-slate-100">Vehicle Type Distribution</h3>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height={240} minHeight={240}>
-                <BarChart data={data.vehicle_factors.vehicle_type} layout="vertical" margin={{ left: 80 }}>
-                  <XAxis type="number" stroke="#64748b" fontSize={11} />
-                  <YAxis type="category" dataKey="category" stroke="#94a3b8" fontSize={11} />
-                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.5rem', fontSize: '12px' }} />
-                  <Bar dataKey="count" fill="#6366f1" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-3">
-            <h3 className="text-sm font-semibold text-slate-100">Vehicle Defect Distribution</h3>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height={240} minHeight={240}>
-                <BarChart data={data.vehicle_factors.defects}>
-                  <XAxis dataKey="category" stroke="#64748b" fontSize={11} />
-                  <YAxis stroke="#64748b" fontSize={11} />
-                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.5rem', fontSize: '12px' }} />
-                  <Bar dataKey="count" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* OTHER TABS */}
-      {(activeTab === 'road' || activeTab === 'environment' || activeTab === 'accident' || activeTab === 'casualty') && (
-        <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-3">
-          <h3 className="text-sm font-semibold text-slate-100">Factor Category Distribution</h3>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height={240} minHeight={240}>
-              <BarChart data={
-                activeTab === 'road' ? data.road_factors.surface_type :
-                activeTab === 'environment' ? data.environmental_factors.light_conditions :
-                activeTab === 'accident' ? data.accident_factors.cause_of_accident :
-                data.casualty_factors.casualty_class
-              }>
-                <XAxis dataKey="category" stroke="#64748b" fontSize={11} />
-                <YAxis stroke="#64748b" fontSize={11} />
-                <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.5rem', fontSize: '12px' }} />
-                <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

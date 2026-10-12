@@ -1,191 +1,220 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { OverviewKPIs } from '../types';
-import { 
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell, Legend
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts';
-import { AlertTriangle, ShieldCheck, Skull, Building2, TrendingUp, RefreshCw, MapPin } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
+import { safeFetchJson, FALLBACK_CITIES, FALLBACK_KPIS, FALLBACK_WEATHER } from '../api/client';
+import { ui } from '../ui';
 
-import { safeFetchJson, FALLBACK_KPIS, FALLBACK_CITIES, FALLBACK_WEATHER } from '../api/client';
+const severityColors = {
+  minor: '#9ec3ee',
+  major: '#e4bd78',
+  fatal: '#d98f89',
+};
+
+const weatherColors = ['#78a7df', '#aec8e5', '#d7e1ed'];
+
+const tooltipStyle = {
+  backgroundColor: '#fcfdff',
+  borderColor: '#d9e1ec',
+  borderRadius: '10px',
+  fontSize: '12px',
+  color: '#101828',
+  boxShadow: '0 12px 30px rgba(35, 61, 98, 0.1)',
+};
+
+type CityDatum = (typeof FALLBACK_CITIES)[number];
+type WeatherDatum = (typeof FALLBACK_WEATHER)[number];
 
 export const Dashboard: React.FC = () => {
   const [kpis, setKpis] = useState<OverviewKPIs>(FALLBACK_KPIS);
-  const [cityData, setCityData] = useState<any[]>(FALLBACK_CITIES);
-  const [weatherData, setWeatherData] = useState<any[]>(FALLBACK_WEATHER);
-  const [loading, setLoading] = useState(false);
+  const [cityData, setCityData] = useState<CityDatum[]>(FALLBACK_CITIES);
+  const [weatherData, setWeatherData] = useState<WeatherDatum[]>(FALLBACK_WEATHER);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
-    setLoading(true);
+  const fetchDashboardData = useCallback(async () => {
     try {
       const [resKpis, resCities, resWeather] = await Promise.all([
         safeFetchJson('/api/analytics/overview', undefined, FALLBACK_KPIS),
-        safeFetchJson('/api/analytics/cities', undefined, FALLBACK_CITIES),
-        safeFetchJson('/api/analytics/weather', undefined, FALLBACK_WEATHER)
+        safeFetchJson<CityDatum[]>('/api/analytics/cities', undefined, FALLBACK_CITIES),
+        safeFetchJson<WeatherDatum[]>('/api/analytics/weather', undefined, FALLBACK_WEATHER),
       ]);
 
       if (resKpis?.total_accidents) setKpis(resKpis);
       if (Array.isArray(resCities)) setCityData(resCities.slice(0, 8));
       if (Array.isArray(resWeather)) setWeatherData(resWeather);
-    } catch (e) {
-      console.log('Using default analytics dashboard data:', e);
+    } catch (error) {
+      console.log('Using default analytics dashboard data:', error);
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- state updates happen after the analytics request resolves.
+    void fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  const refreshDashboard = () => {
+    setLoading(true);
+    void fetchDashboardData();
   };
 
-  const SEVERITY_COLORS = {
-    minor: '#10b981', // Emerald
-    major: '#f59e0b', // Amber
-    fatal: '#f43f5e'  // Rose
-  };
+  const totalForShare = kpis.total_accidents || 1;
+  const weatherTotal = weatherData.reduce((total, item) => total + Number(item.total), 0);
+
+  const severityRows = [
+    {
+      label: 'Minor',
+      value: kpis.minor_accidents,
+      share: (kpis.minor_accidents / totalForShare) * 100,
+      color: severityColors.minor,
+    },
+    {
+      label: 'Major',
+      value: kpis.major_accidents,
+      share: (kpis.major_accidents / totalForShare) * 100,
+      color: severityColors.major,
+    },
+    {
+      label: 'Fatal',
+      value: kpis.fatal_accidents,
+      share: kpis.fatal_percentage,
+      color: severityColors.fatal,
+    },
+  ];
 
   return (
-    <div className="space-y-6 py-2">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+    <div className={ui.page} aria-busy={loading}>
+      <header className="mb-9 grid items-end gap-6 border-b border-line pb-7 md:grid-cols-[minmax(0,1fr)_auto] lg:mb-11">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-indigo-400" />
-            <span>Road Safety Dashboard</span>
-          </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Overview of historical accident severity and factors across 20,000 recorded incidents
-          </p>
+          <h1 className="m-0 max-w-[720px] text-[clamp(2.3rem,4vw,3.8rem)] font-semibold leading-[1.02] tracking-[-0.05em] text-ink">Road safety overview</h1>
+          <p className="mt-3 max-w-[650px] text-[15px] leading-6 text-muted">Severity, location, and weather patterns from the primary accident dataset.</p>
         </div>
-        <button
-          onClick={fetchDashboardData}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-slate-200 border border-slate-800 cursor-pointer w-fit transition-all"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Refresh Data</span>
-        </button>
-      </div>
-
-      {/* KPI CARDS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        <div className="glass-card p-4.5 rounded-2xl border border-slate-800 space-y-1 hover:border-slate-700 transition-all">
-          <div className="flex items-center justify-between text-slate-300">
-            <span className="text-xs font-semibold">Total Incidents</span>
-            <AlertTriangle className="w-4 h-4 text-slate-400" />
-          </div>
-          <div className="font-heading text-2xl font-bold text-white">{kpis.total_accidents.toLocaleString()}</div>
-          <div className="text-[11px] text-slate-400 font-medium">Recorded Hotspots</div>
+        <div className="flex items-center md:justify-end">
+          <button className={ui.button} type="button" onClick={refreshDashboard} disabled={loading}>
+            <RefreshCw size={16} className={loading ? 'animate-spin motion-reduce:animate-none' : ''} aria-hidden="true" />
+            {loading ? 'Refreshing' : 'Refresh data'}
+          </button>
         </div>
+      </header>
 
-        <div className="glass-card p-4.5 rounded-2xl border border-slate-800 space-y-1 hover:border-emerald-500/40 transition-all">
-          <div className="flex items-center justify-between text-slate-300">
-            <span className="text-xs font-semibold text-emerald-400">Minor Severity</span>
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          </div>
-          <div className="font-heading text-2xl font-bold text-emerald-400">{kpis.minor_accidents.toLocaleString()}</div>
-          <div className="text-[11px] text-slate-400 font-medium">
-            {((kpis.minor_accidents / kpis.total_accidents) * 100).toFixed(1)}% of total cases
+      <section className="mb-10 grid items-end gap-10 border-b border-line pb-10 lg:grid-cols-[minmax(280px,0.72fr)_minmax(540px,1.28fr)] lg:gap-[clamp(3.5rem,9vw,8rem)] lg:pb-12" aria-label="Accident overview">
+        <div>
+          <span className="text-[13px] font-semibold text-brand-deep">Recorded incidents</span>
+          <strong className="my-3 block text-[clamp(4rem,7vw,7rem)] font-medium leading-[0.9] tracking-[-0.07em] text-ink">{kpis.total_accidents.toLocaleString()}</strong>
+          <p className="m-0 max-w-[360px] text-[14px] leading-6 text-muted">Observed across {kpis.total_cities} cities in {kpis.total_states} states.</p>
+        </div>
+        <div>
+          <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-ink">Severity distribution</h2>
+          <p className="mt-2 text-[13px] leading-5 text-muted">Every city is measured against the same three outcome levels.</p>
+          <div className="mt-5 grid border-y border-line sm:grid-cols-3">
+            {severityRows.map((row) => (
+              <div key={row.label} className="flex min-h-[138px] flex-col justify-between border-b border-line py-5 last:border-b-0 sm:border-b-0 sm:border-r sm:px-5 sm:first:pl-0 sm:last:border-r-0 sm:last:pr-0">
+                <span className="flex items-center gap-2.5 text-[13px] font-semibold text-slate-700">
+                  <span className="h-1.5 w-6 rounded-[2px]" style={{ backgroundColor: row.color }} aria-hidden="true" />
+                  {row.label}
+                </span>
+                <div>
+                  <strong className="block text-[28px] font-semibold tracking-[-0.04em] text-ink">{row.value.toLocaleString()}</strong>
+                  <span className="mt-1 block text-[12px] text-muted">{row.share.toFixed(1)}% of records</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
+      </section>
 
-        <div className="glass-card p-4.5 rounded-2xl border border-slate-800 space-y-1 hover:border-amber-500/40 transition-all">
-          <div className="flex items-center justify-between text-slate-300">
-            <span className="text-xs font-semibold text-amber-400">Major Severity</span>
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
+      <section className="grid overflow-hidden rounded-[12px] border border-line bg-surface lg:grid-cols-[minmax(0,1.55fr)_minmax(310px,0.65fr)]" aria-label="Accident charts">
+        <article className="min-w-0 border-b border-line lg:border-b-0 lg:border-r">
+          <div className="flex flex-col gap-5 border-b border-line px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-7 sm:py-6">
+            <div>
+              <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-ink">Severity by city</h2>
+              <p className="mt-1.5 text-[13px] leading-5 text-muted">The eight highest-volume cities on one comparable scale.</p>
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-2" aria-label="Severity chart legend">
+              {severityRows.map((row) => (
+                <span className="flex items-center gap-2 text-[11px] font-semibold text-slate-600" key={row.label}>
+                  <span className="size-2.5 rounded-[2px]" style={{ backgroundColor: row.color }} aria-hidden="true" />
+                  {row.label}
+                </span>
+              ))}
+            </div>
           </div>
-          <div className="font-heading text-2xl font-bold text-amber-400">{kpis.major_accidents.toLocaleString()}</div>
-          <div className="text-[11px] text-slate-400 font-medium">
-            {((kpis.major_accidents / kpis.total_accidents) * 100).toFixed(1)}% of total cases
-          </div>
-        </div>
-
-        <div className="glass-card p-4.5 rounded-2xl border border-slate-800 space-y-1 hover:border-rose-500/40 transition-all">
-          <div className="flex items-center justify-between text-slate-300">
-            <span className="text-xs font-semibold text-rose-400">Fatal Severity</span>
-            <Skull className="w-4 h-4 text-rose-400" />
-          </div>
-          <div className="font-heading text-2xl font-bold text-rose-400">{kpis.fatal_accidents.toLocaleString()}</div>
-          <div className="text-[11px] text-rose-400 font-semibold">
-            {kpis.fatal_percentage}% Fatal Rate
-          </div>
-        </div>
-
-        <div className="glass-card p-4.5 rounded-2xl border border-slate-800 space-y-1 col-span-2 md:col-span-1 hover:border-slate-700 transition-all">
-          <div className="flex items-center justify-between text-slate-300">
-            <span className="text-xs font-semibold text-indigo-400">Coverage</span>
-            <Building2 className="w-4 h-4 text-indigo-400" />
-          </div>
-          <div className="font-heading text-2xl font-bold text-white">{kpis.total_cities} <span className="text-xs font-normal text-slate-400">Cities</span></div>
-          <div className="text-[11px] text-slate-400 font-medium">{kpis.total_states} States Analyzed</div>
-        </div>
-      </div>
-
-      {/* CHARTS GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* City Breakdown Stacked Bar Chart */}
-        <div className="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <h3 className="font-heading text-base font-bold text-white flex items-center gap-2">
-              <MapPin className="w-4.5 h-4.5 text-indigo-400" />
-              <span>Top Cities by Severity Breakdown</span>
-            </h3>
-            <span className="text-xs text-slate-400 font-mono">Incident Density</span>
-          </div>
-
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height={240} minHeight={240}>
-              <BarChart data={cityData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <XAxis dataKey="city" stroke="#94a3b8" fontSize={11} />
-                <YAxis stroke="#94a3b8" fontSize={11} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#09090d', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '12px', color: '#fff' }}
-                />
-                <Bar dataKey="minor" stackId="a" fill={SEVERITY_COLORS.minor} name="Minor" />
-                <Bar dataKey="major" stackId="a" fill={SEVERITY_COLORS.major} name="Major" />
-                <Bar dataKey="fatal" stackId="a" fill={SEVERITY_COLORS.fatal} name="Fatal" />
+          <div className="min-h-[410px] px-2 py-6 pr-4 sm:px-5 sm:pr-7">
+            <ResponsiveContainer width="100%" height={360} minHeight={360}>
+              <BarChart data={cityData} layout="vertical" margin={{ top: 2, right: 8, left: 4, bottom: 0 }} barCategoryGap="28%">
+                <CartesianGrid horizontal={false} stroke="#e5ebf2" />
+                <XAxis type="number" stroke="#7a8799" fontSize={11} axisLine={false} tickLine={false} />
+                <YAxis dataKey="city" type="category" width={76} stroke="#5f6c80" fontSize={11} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: '#f4f7fb' }} />
+                <Bar dataKey="minor" stackId="severity" fill={severityColors.minor} name="Minor" />
+                <Bar dataKey="major" stackId="severity" fill={severityColors.major} name="Major" />
+                <Bar dataKey="fatal" stackId="severity" fill={severityColors.fatal} name="Fatal" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </article>
 
-        {/* Weather Distribution Donut Chart */}
-        <div className="glass-card p-6 rounded-3xl border border-white/10 space-y-4 shadow-xl">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <h3 className="font-heading text-base font-bold text-white flex items-center gap-2">
-              <TrendingUp className="w-4.5 h-4.5 text-amber-400" />
-              <span>Weather Conditions Distribution</span>
-            </h3>
-            <span className="text-xs text-slate-400 font-mono">Impact Breakdown</span>
+        <article className="min-w-0">
+          <div className="border-b border-line px-5 py-5 sm:px-7 sm:py-6">
+            <div>
+              <h2 className="text-[18px] font-semibold tracking-[-0.025em] text-ink">Weather conditions</h2>
+              <p className="mt-1.5 text-[13px] leading-5 text-muted">Conditions recorded at the time of each incident.</p>
+            </div>
           </div>
-
-          <div className="h-64 w-full flex items-center justify-center">
-            <ResponsiveContainer width="100%" height={240} minHeight={240}>
-              <PieChart>
-                <Pie
-                  data={weatherData}
-                  dataKey="total"
-                  nameKey="weather"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={55}
-                  outerRadius={90}
-                  paddingAngle={4}
-                >
-                  {weatherData.map((_, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={['#ef4444', '#f59e0b', '#10b981', '#6366f1', '#ec4899'][index % 5]} 
-                    />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#09090d', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '12px', color: '#fff' }}
-                />
-                <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '12px', color: '#cbd5e1' }} />
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="grid min-h-[410px] grid-rows-[1fr_auto] items-center px-5 py-6 sm:px-7">
+            <div className="relative min-w-0">
+              <ResponsiveContainer width="100%" height={245} minHeight={245}>
+                <PieChart>
+                  <Pie
+                    data={weatherData}
+                    dataKey="total"
+                    nameKey="weather"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={67}
+                    outerRadius={96}
+                    paddingAngle={1.5}
+                    stroke="#fcfdff"
+                    strokeWidth={3}
+                  >
+                    {weatherData.map((_, index) => (
+                      <Cell key={index} fill={weatherColors[index % weatherColors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={tooltipStyle} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pt-1" aria-hidden="true">
+                <strong className="text-[24px] font-semibold tracking-[-0.04em] text-ink">{weatherTotal.toLocaleString()}</strong>
+                <span className="mt-0.5 text-[11px] text-muted">incidents</span>
+              </div>
+            </div>
+            <div className="border-t border-line">
+              {weatherData.map((item, index) => (
+                <div className="grid min-h-12 grid-cols-[10px_minmax(0,1fr)_auto] items-center gap-3 border-b border-line text-[12px] last:border-b-0" key={item.weather}>
+                  <span className="size-2.5 rounded-[2px]" style={{ backgroundColor: weatherColors[index % weatherColors.length] }} aria-hidden="true" />
+                  <strong className="font-semibold capitalize text-slate-700">{String(item.weather).replaceAll('_', ' ')}</strong>
+                  <span className="text-right text-muted">
+                    {Number(item.total).toLocaleString()} <span className="ml-1 text-slate-400">{weatherTotal > 0 ? `${((Number(item.total) / weatherTotal) * 100).toFixed(1)}%` : '0.0%'}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </div>
+        </article>
+      </section>
     </div>
   );
 };

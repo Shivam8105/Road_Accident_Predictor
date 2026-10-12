@@ -1,497 +1,334 @@
-import React, { useEffect, useRef, useState } from 'react';
-import type { NavTab } from '../components/Navbar';
-import { 
-  BrainCircuit, SlidersHorizontal, HelpCircle, Map, 
-  Layers, Database, ArrowRight,
-  ChevronDown, Zap, Compass
-} from 'lucide-react';
-import gsap from 'gsap';
+import React, { useState } from "react";
+import { ArrowRight } from "lucide-react";
+import type { NavTab } from "../components/Navbar";
 
 interface HomeProps {
-  setActiveTab: (tab: NavTab) => void;
+	setActiveTab: (tab: NavTab) => void;
 }
 
+interface VisualAssetProps {
+	src: string;
+	alt: string;
+	caption: string;
+	mediaClassName: string;
+	priority?: boolean;
+}
+
+const focusRing =
+	"cursor-pointer focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-brand/25";
+const container = "mx-auto w-[calc(100%-2rem)] max-w-[1200px] sm:w-[calc(100%-3rem)]";
+
+const VisualAsset: React.FC<VisualAssetProps> = ({
+	src,
+	alt,
+	caption,
+	mediaClassName,
+	priority = false,
+}) => {
+	const [imageMissing, setImageMissing] = useState(false);
+	const filename = src.split("/").pop();
+
+	return (
+		<figure className="m-0" data-asset={src}>
+			<div
+				className={`relative overflow-hidden rounded-[12px] border border-line bg-slate-100 ${mediaClassName}`}
+			>
+				{!imageMissing ? (
+					<img
+						className="block size-full object-cover"
+						src={src}
+						alt={alt}
+						loading={priority ? "eager" : "lazy"}
+						fetchPriority={priority ? "high" : "auto"}
+						onError={() => setImageMissing(true)}
+					/>
+				) : (
+					<div
+						className="flex size-full min-h-[inherit] flex-col justify-end p-6 text-slate-700 sm:p-8"
+						role="img"
+						aria-label={alt}
+					>
+						<span className="text-[13px] font-semibold text-ink">Visual ready for replacement</span>
+						<span className="mt-2 max-w-[34ch] text-[13px] leading-5 text-muted">{alt}</span>
+						<code className="mt-4 w-fit border-b border-slate-400 pb-1 text-[11px] text-slate-600">
+							{filename}
+						</code>
+					</div>
+				)}
+			</div>
+			<figcaption className="mt-3 text-[13px] leading-5 text-muted">{caption}</figcaption>
+		</figure>
+	);
+};
+
+const journey: Array<{ title: string; description: string; action: string; tab: NavTab }> = [
+	{
+		title: "Predict",
+		description: "Describe the road, weather, traffic, and visibility conditions you know.",
+		action: "Open predictor",
+		tab: "predict",
+	},
+	{
+		title: "Compare",
+		description: "Change one condition at a time and see how the severity outlook responds.",
+		action: "Compare scenarios",
+		tab: "whatif",
+	},
+	{
+		title: "Explain",
+		description: "Inspect the conditions that pushed the prediction higher or lower.",
+		action: "Read explanations",
+		tab: "explain",
+	},
+	{
+		title: "Locate",
+		description: "Place the result beside historical patterns across Indian cities and states.",
+		action: "Explore the map",
+		tab: "map",
+	},
+];
+
 export const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
-  const heroRef = useRef<HTMLDivElement>(null);
-  const cardsRef = useRef<HTMLDivElement>(null);
-  const statsRef = useRef<HTMLDivElement>(null);
-  const workflowRef = useRef<HTMLDivElement>(null);
+	const primaryButton = `inline-flex min-h-12 items-center justify-center gap-2.5 whitespace-nowrap rounded-[10px] border border-brand bg-brand px-5 text-[15px] font-semibold text-white transition-colors hover:border-brand-deep hover:bg-brand-deep active:translate-y-px ${focusRing}`;
+	const secondaryButton = `inline-flex min-h-12 items-center justify-center whitespace-nowrap rounded-[10px] border border-slate-300 bg-transparent px-5 text-[15px] font-semibold text-ink transition-colors hover:border-slate-400 hover:bg-surface active:translate-y-px ${focusRing}`;
+	const textLink = `inline-flex items-center gap-2 border-0 bg-transparent py-2 text-[14px] font-semibold text-brand-deep transition-colors hover:text-brand ${focusRing}`;
 
-  // Interactive Live Estimator State (Homepage Interactive Widget)
-  const [demoSpeed, setDemoSpeed] = useState(85);
-  const [demoWeather, setDemoWeather] = useState<'clear' | 'rain' | 'fog'>('rain');
-  const [demoDensity, setDemoDensity] = useState<'low' | 'medium' | 'high'>('high');
+	return (
+		<div className="bg-canvas text-ink">
+			<section
+				className="grid min-h-[calc(100dvh-4rem)] items-center py-10 sm:py-12 lg:py-14"
+				aria-labelledby="landing-title"
+			>
+				<div
+					className={`${container} grid items-center gap-10 lg:grid-cols-[minmax(0,0.82fr)_minmax(500px,1.18fr)] lg:gap-[clamp(3rem,7vw,6.5rem)]`}
+				>
+					<div className="max-w-[560px] lg:pb-8">
+						<p className="mb-5 text-[14px] font-semibold text-brand-deep">
+							Road safety intelligence
+						</p>
+						<h1
+							id="landing-title"
+							className="m-0 max-w-[14ch] text-[clamp(3rem,5.5vw,5rem)] font-semibold leading-[0.98] tracking-[-0.052em] text-ink"
+						>
+							See road risk before impact.
+						</h1>
+						<p className="mt-6 max-w-[510px] text-[clamp(1rem,1.45vw,1.16rem)] leading-8 text-muted">
+							Model road, weather, traffic, and location conditions to predict severity and
+							understand what changes the outcome.
+						</p>
+						<div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+							<button
+								className={primaryButton}
+								type="button"
+								onClick={() => setActiveTab("predict")}
+							>
+								Predict severity
+								<ArrowRight size={17} strokeWidth={1.8} aria-hidden="true" />
+							</button>
+							<button className={secondaryButton} type="button" onClick={() => setActiveTab("map")}>
+								Explore the map
+							</button>
+						</div>
+					</div>
 
-  // FAQ Accordion State
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
+					<VisualAsset
+						src="/visuals/landing-hero-road.webp"
+						alt="A high-angle view of a modern Indian road junction with moving traffic"
+						caption="A road-level view of the conditions that shape each prediction."
+						mediaClassName="aspect-[5/4] min-h-[340px] sm:min-h-[440px] lg:min-h-[min(64vh,640px)]"
+						priority
+					/>
+				</div>
+			</section>
 
-  // GSAP Entrance Animations
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      // Hero entrance
-      gsap.fromTo(
-        heroRef.current,
-        { opacity: 0, y: 30 },
-        { opacity: 1, y: 0, duration: 1, ease: 'power3.out' }
-      );
+			<section className="border-y border-line bg-surface" aria-label="Platform evidence">
+				<div className={`${container} grid sm:grid-cols-3 lg:grid-cols-[1.55fr_repeat(3,1fr)]`}>
+					<div className="col-span-full flex min-h-24 items-center border-b border-line py-5 lg:col-span-1 lg:border-b-0 lg:pr-8">
+						<p className="m-0 max-w-[260px] text-[15px] font-semibold leading-6 text-ink">
+							Evidence from two independent road-safety datasets
+						</p>
+					</div>
+					{[
+						["20,000", "prediction records"],
+						["5", "models evaluated"],
+						["15", "cities represented"],
+					].map(([value, label], index) => (
+						<div
+							className={`flex min-h-24 flex-col justify-center border-b border-line py-5 last:border-b-0 sm:border-b-0 sm:border-l sm:px-5 lg:px-7 ${index === 0 ? "sm:border-l-0 lg:border-l" : ""}`}
+							key={label}
+						>
+							<strong className="text-[24px] font-semibold tracking-[-0.035em] text-ink">
+								{value}
+							</strong>
+							<span className="mt-1 text-[13px] text-muted">{label}</span>
+						</div>
+					))}
+				</div>
+			</section>
 
-      // Feature cards staggered entrance
-      if (cardsRef.current) {
-        gsap.fromTo(
-          cardsRef.current.children,
-          { opacity: 0, y: 40, scale: 0.95 },
-          { 
-            opacity: 1, 
-            y: 0, 
-            scale: 1, 
-            duration: 0.8, 
-            stagger: 0.12, 
-            ease: 'back.out(1.4)',
-            delay: 0.3 
-          }
-        );
-      }
+			<section className="py-20 lg:py-28" aria-labelledby="context-title">
+				<div className={container}>
+					<div className="mb-10 max-w-[660px] lg:mb-12">
+						<h2
+							id="context-title"
+							className="m-0 max-w-[14ch] text-[clamp(2.35rem,4.5vw,4.25rem)] font-semibold leading-[1.02] tracking-[-0.047em]"
+						>
+							A prediction is only useful in context.
+						</h2>
+						<p className="mt-5 max-w-[550px] text-[17px] leading-7 text-muted">
+							Read a forecast beside its location, conditions, and historical pattern.
+						</p>
+					</div>
+					<div className="grid items-end gap-10 lg:grid-cols-[minmax(0,1.6fr)_minmax(270px,0.6fr)] lg:gap-[clamp(2.5rem,6vw,5rem)]">
+						<VisualAsset
+							src="/visuals/landing-map-overview.webp"
+							alt="AcciPredict map showing historical accident concentrations across India"
+							caption="Historical incidents remain explorable by place, severity, cause, and conditions."
+							mediaClassName="aspect-[10/7] min-h-[340px] sm:min-h-[450px] lg:min-h-[560px]"
+						/>
+						<div className="lg:pb-8">
+							{[
+								{
+									title: "Read the place",
+									body: "Filter historical incidents by city, state, weather, cause, and severity.",
+								},
+								{
+									title: "Read the conditions",
+									body: "Trace a forecast back to the road and environmental inputs that shaped it.",
+								},
+							].map((item) => (
+								<div className="border-b border-line py-7 first:border-t" key={item.title}>
+									<h3 className="text-[18px] font-semibold tracking-[-0.018em]">{item.title}</h3>
+									<p className="mt-2 text-[14px] leading-6 text-muted">{item.body}</p>
+								</div>
+							))}
+							<button
+								className="mt-4 inline-flex cursor-pointer border-0 bg-transparent py-2 text-[14px] font-semibold text-brand-deep transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-brand/25"
+								type="button"
+								onClick={() => setActiveTab("analytics")}
+							>
+								Explore accident insights
+							</button>
+						</div>
+					</div>
+				</div>
+			</section>
 
-      // Stats bar entrance
-      if (statsRef.current) {
-        gsap.fromTo(
-          statsRef.current,
-          { opacity: 0, scale: 0.9 },
-          { opacity: 1, scale: 1, duration: 0.8, ease: 'power2.out', delay: 0.6 }
-        );
-      }
-    });
+			<section
+				className="border-y border-line bg-[#f0f4f9] py-20 lg:py-28"
+				aria-labelledby="journey-title"
+			>
+				<div className={container}>
+					<div className="max-w-[650px]">
+						<h2
+							id="journey-title"
+							className="m-0 max-w-[14ch] text-[clamp(2.35rem,4.5vw,4.25rem)] font-semibold leading-[1.02] tracking-[-0.047em]"
+						>
+							Follow the decision, not the dashboard.
+						</h2>
+						<p className="mt-5 max-w-[540px] text-[17px] leading-7 text-muted">
+							Each view answers the next practical question without losing the original scenario.
+						</p>
+					</div>
+					<div className="mt-12 grid border-t border-slate-300 md:grid-cols-2 lg:grid-cols-4">
+						{journey.map((item, index) => (
+							<button
+								key={item.title}
+								className={`group flex min-h-[245px] w-full cursor-pointer flex-col items-start border-0 border-b border-slate-300 bg-transparent py-7 text-left transition-colors hover:bg-surface/70 md:px-7 ${index % 2 === 0 ? "md:border-r" : ""} lg:border-r lg:px-6 lg:last:border-r-0 ${focusRing}`}
+								type="button"
+								onClick={() => setActiveTab(item.tab)}
+							>
+								<span className="text-[13px] font-semibold text-brand-deep">
+									{String(index + 1).padStart(2, "0")}
+								</span>
+								<strong className="mt-9 text-[25px] font-semibold tracking-[-0.035em] text-ink">
+									{item.title}
+								</strong>
+								<span className="mt-3 max-w-[260px] text-[14px] leading-6 text-muted">
+									{item.description}
+								</span>
+								<span className="mt-auto pt-8 text-[13px] font-semibold text-brand-deep group-hover:text-brand">
+									{item.action}
+								</span>
+							</button>
+						))}
+					</div>
+				</div>
+			</section>
 
-    return () => ctx.revert();
-  }, []);
+			<section className="py-20 lg:py-28" aria-labelledby="method-title">
+				<div
+					className={`${container} grid items-center gap-12 lg:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)] lg:gap-[clamp(3.5rem,8vw,7rem)]`}
+				>
+					<VisualAsset
+						src="/visuals/landing-explanation.webp"
+						alt="AcciPredict explanation view with clear contributing road and weather factors"
+						caption="Contributing factors show how each input moved an individual result."
+						mediaClassName="aspect-[7/6] min-h-[340px] sm:min-h-[440px] lg:min-h-[500px]"
+					/>
+					<div>
+						<h2
+							id="method-title"
+							className="m-0 max-w-[13ch] text-[clamp(2.35rem,4.5vw,4.25rem)] font-semibold leading-[1.02] tracking-[-0.047em]"
+						>
+							A result you can question.
+						</h2>
+						<p className="mt-5 max-w-[540px] text-[17px] leading-7 text-muted">
+							The model is designed to show its evidence and protect the boundary between its source
+							datasets.
+						</p>
+						<div className="mt-8 grid border-t border-line">
+							{[
+								[
+									"Separate sources",
+									"Prediction records and detailed factor records are never joined.",
+								],
+								["Fair comparison", "Models are evaluated against the same held-out test split."],
+								[
+									"Visible reasoning",
+									"SHAP factors show which conditions shaped an individual result.",
+								],
+							].map(([title, body]) => (
+								<div
+									className="grid gap-2 border-b border-line py-5 sm:grid-cols-[130px_1fr] sm:gap-5"
+									key={title}
+								>
+									<h3 className="text-[14px] font-semibold text-ink">{title}</h3>
+									<p className="text-[14px] leading-6 text-muted">{body}</p>
+								</div>
+							))}
+						</div>
+						<button
+							className={`${textLink} mt-4`}
+							type="button"
+							onClick={() => setActiveTab("explain")}
+						>
+							See how explanations work <ArrowRight size={16} />
+						</button>
+					</div>
+				</div>
+			</section>
 
-  // Calculate live demo risk score based on sliders
-  const calculateDemoRisk = () => {
-    let score = 30; // base score
-    if (demoSpeed > 60) score += (demoSpeed - 60) * 0.7;
-    if (demoWeather === 'rain') score += 20;
-    if (demoWeather === 'fog') score += 28;
-    if (demoDensity === 'high') score += 18;
-    if (demoDensity === 'medium') score += 8;
-    return Math.min(Math.round(score), 98);
-  };
-
-  const demoRisk = calculateDemoRisk();
-  const demoSeverity = demoRisk > 70 ? 'FATAL' : demoRisk > 45 ? 'MAJOR' : 'MINOR';
-
-  const faqs = [
-    {
-      q: "How does AcciPredict classify accident severity?",
-      a: "AcciPredict uses a 5-classifier machine learning pipeline (Logistic Regression, Decision Tree, Random Forest, XGBoost, LightGBM) trained on 20,000 records from Dataset 1 to predict 3 distinct multiclass outcomes: Minor, Major, and Fatal severity."
-    },
-    {
-      q: "Why are Dataset 1 and Dataset 2 kept strictly separate?",
-      a: "Dataset 1 (`indian_roads_dataset.csv`) contains GIS spatial coordinates and balanced multiclass targets suited for primary ML inference. Dataset 2 (`Road.csv`) contains detailed driver, vehicle, and casualty attributes but exhibits severe target class imbalance (84.6% Slight Injury). Keeping them isolated prevents synthetic data leakage and ensures domain-accurate analytics."
-    },
-    {
-      q: "How does SHAP Explainable AI (XAI) work in AcciPredict?",
-      a: "SHAP (SHapley Additive exPlanations) calculates game-theoretic Shapley values to attribute exact feature contribution scores for every prediction. It shows positive risk factors (e.g. Over-Speeding, Rain, Low Visibility) and risk moderation factors in clear visual charts."
-    },
-    {
-      q: "Can I simulate hypothetical scenario shifts?",
-      a: "Yes! The What-If Simulator lets you alter environmental parameters (e.g., weather from Rain to Clear, or adding active Traffic Signals) and immediately compares before-vs-after severity probability distributions."
-    }
-  ];
-
-  return (
-    <div className="space-y-16 py-6">
-      {/* 1. HERO SECTION (GSAP ANIMATED & NEXORA STYLED) */}
-      <div ref={heroRef} className="relative flex flex-col items-center text-center space-y-6 pt-6 pb-4 max-w-4xl mx-auto">
-        {/* Glow ambient background */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none -z-10" />
-
-        {/* Top Pill Badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-950/60 border border-indigo-500/30 text-xs font-medium text-indigo-300">
-          <span className="w-2 h-2 rounded-full bg-indigo-400" />
-          <span>Road Safety & Accident Intelligence Platform</span>
-        </div>
-
-        {/* Big Bold Headline */}
-        <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight leading-[1.15]">
-          Intelligent Road Safety Analytics <br />
-          <span className="text-indigo-400">
-            & Accident Risk Prediction
-          </span>
-        </h1>
-
-        {/* Subtitle */}
-        <p className="text-sm sm:text-base text-slate-300 max-w-2xl font-normal leading-relaxed">
-          Evaluate severity models, simulate what-if safety interventions, and explore geographic accident risk hotspots across India.
-        </p>
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-          <button
-            onClick={() => setActiveTab('predict')}
-            className="flex items-center gap-2 px-6 py-3 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm shadow-sm transition-all cursor-pointer whitespace-nowrap"
-          >
-            <span>Predict Severity</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => setActiveTab('map')}
-            className="flex items-center gap-2 px-6 py-3 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 font-medium text-sm transition-all cursor-pointer whitespace-nowrap"
-          >
-            <span>Explore GIS Map</span>
-          </button>
-        </div>
-
-        {/* 4 NEXORA FEATURE CARDS GRID */}
-        <div ref={cardsRef} className="w-full pt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
-          {/* Card 1: AI Models */}
-          <div 
-            onClick={() => setActiveTab('models')}
-            className="glass-card p-5 rounded-2xl cursor-pointer group hover:border-indigo-500/40 relative overflow-hidden"
-          >
-            <div className="p-3 rounded-xl bg-indigo-950/60 border border-indigo-800/50 text-indigo-300 w-fit mb-3 group-hover:scale-110 transition-transform">
-              <BrainCircuit className="w-5 h-5" />
-            </div>
-            <h3 className="font-heading text-base font-bold text-white mb-1 flex items-center justify-between">
-              <span>AI Models</span>
-              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition-colors" />
-            </h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Access 5 state-of-the-art ML classifiers (Random Forest, XGBoost, LightGBM) in one place.
-            </p>
-          </div>
-
-          {/* Card 2: What-If Simulator */}
-          <div 
-            onClick={() => setActiveTab('whatif')}
-            className="glass-card p-5 rounded-2xl cursor-pointer group hover:border-indigo-500/40 relative overflow-hidden"
-          >
-            <div className="p-3 rounded-xl bg-indigo-950/60 border border-indigo-800/50 text-indigo-300 w-fit mb-3 group-hover:scale-110 transition-transform">
-              <SlidersHorizontal className="w-5 h-5" />
-            </div>
-            <h3 className="font-heading text-base font-bold text-white mb-1 flex items-center justify-between">
-              <span>What-If Simulator</span>
-              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition-colors" />
-            </h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Simulate weather, speed limits, and traffic density changes in real-time.
-            </p>
-          </div>
-
-          {/* Card 3: GIS Spatial Map */}
-          <div 
-            onClick={() => setActiveTab('map')}
-            className="glass-card p-5 rounded-2xl cursor-pointer group hover:border-indigo-500/40 relative overflow-hidden"
-          >
-            <div className="p-3 rounded-xl bg-indigo-950/60 border border-indigo-800/50 text-indigo-300 w-fit mb-3 group-hover:scale-110 transition-transform">
-              <Map className="w-5 h-5" />
-            </div>
-            <h3 className="font-heading text-base font-bold text-white mb-1 flex items-center justify-between">
-              <span>GIS Risk Map</span>
-              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition-colors" />
-            </h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Gain actionable spatial insights from interactive geographic hotspot maps across India.
-            </p>
-          </div>
-
-          {/* Card 4: SHAP XAI Analytics */}
-          <div 
-            onClick={() => setActiveTab('explain')}
-            className="glass-card p-5 rounded-2xl cursor-pointer group hover:border-indigo-500/40 relative overflow-hidden"
-          >
-            <div className="p-3 rounded-xl bg-indigo-950/60 border border-indigo-800/50 text-indigo-300 w-fit mb-3 group-hover:scale-110 transition-transform">
-              <HelpCircle className="w-5 h-5" />
-            </div>
-            <h3 className="font-heading text-base font-bold text-white mb-1 flex items-center justify-between">
-              <span>SHAP XAI</span>
-              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition-colors" />
-            </h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Understand exact positive and negative feature attributions behind every prediction.
-            </p>
-          </div>
-        </div>
-
-        {/* BOTTOM STATS PILL BAR */}
-        <div ref={statsRef} className="w-full max-w-4xl glass-card p-4 rounded-full border border-white/10 flex flex-wrap items-center justify-around gap-6 text-center shadow-2xl">
-          <div className="flex items-center gap-3 text-left">
-            <div className="flex -space-x-2 overflow-hidden">
-              <div className="inline-block h-7 w-7 rounded-full bg-indigo-600 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white">AI</div>
-              <div className="inline-block h-7 w-7 rounded-full bg-indigo-500 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white">ML</div>
-              <div className="inline-block h-7 w-7 rounded-full bg-amber-600 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white">GIS</div>
-            </div>
-            <div className="text-xs">
-              <div className="font-bold text-white">Dataset 1 & 2</div>
-              <div className="text-[10px] text-slate-400">Isolated Pipelines</div>
-            </div>
-          </div>
-
-          <div className="border-l border-white/10 pl-6 text-left">
-            <div className="font-heading text-lg font-black text-indigo-400">20,000+</div>
-            <div className="text-[10px] text-slate-400 font-medium">Dataset 1 Records</div>
-          </div>
-
-          <div className="border-l border-white/10 pl-6 text-left">
-            <div className="font-heading text-lg font-black text-white">5 Models</div>
-            <div className="text-[10px] text-slate-400 font-medium">Evaluated Benchmark</div>
-          </div>
-
-          <div className="border-l border-white/10 pl-6 text-left">
-            <div className="font-heading text-lg font-black text-indigo-400">15+</div>
-            <div className="text-[10px] text-slate-400 font-medium font-medium">Metro Hotspots</div>
-          </div>
-
-          <div className="border-l border-white/10 pl-6 text-left hidden sm:block">
-            <div className="font-heading text-lg font-black text-white">SHAP XAI</div>
-            <div className="text-[10px] text-slate-400 font-medium">Explainable Output</div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. INTERACTIVE LIVE RISK ESTIMATOR WIDGET (HOMEPAGE INTERACTIVE PREVIEW) */}
-      <div className="max-w-5xl mx-auto glass-card p-6 sm:p-8 rounded-3xl border border-indigo-500/25 space-y-6 relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-950/80 border border-indigo-800 text-indigo-300 text-[11px] font-bold mb-2">
-              <Zap className="w-3.5 h-3.5" /> Interactive Sandbox Widget
-            </div>
-            <h2 className="font-heading text-2xl font-bold text-white">Live Risk Severity Estimator</h2>
-            <p className="text-xs text-slate-400 mt-1">Adjust controls to test immediate simulated severity output before running full inference</p>
-          </div>
-
-          <button
-            onClick={() => setActiveTab('predict')}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all cursor-pointer w-fit"
-          >
-            <span>Open Full Predictor</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Controls Column */}
-          <div className="lg:col-span-7 space-y-4 text-xs">
-            <div>
-              <div className="flex justify-between text-slate-300 font-semibold mb-1.5">
-                <span>Vehicle Speed ({demoSpeed} km/h)</span>
-                <span className={demoSpeed > 90 ? 'text-indigo-400 font-bold' : 'text-slate-400'}>
-                  {demoSpeed > 90 ? 'High Risk' : 'Standard'}
-                </span>
-              </div>
-              <input
-                type="range"
-                min="30"
-                max="140"
-                value={demoSpeed}
-                onChange={(e) => setDemoSpeed(parseInt(e.target.value))}
-                className="w-full accent-indigo-500 cursor-pointer"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 pt-1">
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Weather Condition</label>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {(['clear', 'rain', 'fog'] as const).map((w) => (
-                    <button
-                      key={w}
-                      type="button"
-                      onClick={() => setDemoWeather(w)}
-                      className={`py-1.5 px-2 rounded-lg font-bold uppercase text-[10px] cursor-pointer border transition-all ${
-                        demoWeather === w ? 'bg-indigo-600 text-white border-indigo-400 shadow-md' : 'bg-white/5 text-slate-400 border-white/10 hover:text-white'
-                      }`}
-                    >
-                      {w}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Traffic Density</label>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {(['low', 'medium', 'high'] as const).map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => setDemoDensity(d)}
-                      className={`py-1.5 px-2 rounded-lg font-bold uppercase text-[10px] cursor-pointer border transition-all ${
-                        demoDensity === d ? 'bg-indigo-600 text-white border-indigo-400 shadow-md' : 'bg-white/5 text-slate-400 border-white/10 hover:text-white'
-                      }`}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Live Meter Output Column */}
-          <div className="lg:col-span-5 p-5 rounded-2xl bg-white/5 border border-white/10 flex flex-col justify-between space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-medium">Estimated Risk Index</span>
-              <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase ${
-                demoSeverity === 'FATAL' ? 'bg-red-950 text-red-300 border border-red-800' :
-                demoSeverity === 'MAJOR' ? 'bg-amber-950 text-amber-300 border border-amber-800' :
-                'bg-emerald-950 text-emerald-300 border border-emerald-800'
-              }`}>
-                {demoSeverity} SEVERITY
-              </span>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-baseline justify-between">
-                <div className="text-3xl font-black text-white font-heading">{demoRisk} <span className="text-sm font-normal text-slate-400">/ 100</span></div>
-                <div className="text-xs font-bold text-red-400">{demoRisk}% Vulnerability</div>
-              </div>
-
-              <div className="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden border border-white/10">
-                <div
-                  className={`h-full rounded-full transition-all duration-300 ${
-                    demoSeverity === 'FATAL' ? 'bg-gradient-to-r from-amber-500 to-red-600' :
-                    demoSeverity === 'MAJOR' ? 'bg-amber-500' :
-                    'bg-emerald-500'
-                  }`}
-                  style={{ width: `${demoRisk}%` }}
-                />
-              </div>
-            </div>
-
-            <p className="text-[11px] text-slate-400 leading-relaxed">
-              {demoSeverity === 'FATAL' ? 'High probability of fatal structural outcome under current speed & visibility parameters.' :
-               demoSeverity === 'MAJOR' ? 'Moderate severity threshold. Major injury risks present.' :
-               'Controlled risk parameters within safety boundaries.'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. HOW ACCIPREDICT WORKS (4-STEP WORKFLOW PIPELINE) */}
-      <div ref={workflowRef} className="max-w-5xl mx-auto space-y-8">
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/5 text-slate-400 border border-white/10 text-xs font-semibold">
-            <Compass className="w-3.5 h-3.5 text-indigo-400" /> End-to-End Workflow
-          </div>
-          <h2 className="font-heading text-3xl font-extrabold text-white">How AcciPredict Works</h2>
-          <p className="text-xs text-slate-400">Systematic multi-stage inference & explainable analytics pipeline</p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="glass-card p-5 rounded-2xl space-y-3 relative">
-            <div className="font-heading text-3xl font-black text-indigo-500/40">01</div>
-            <h3 className="font-heading text-base font-bold text-white">Data Ingestion</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Inhales 17 spatial, weather, road type, traffic signal & temporal features without target leakage metrics.
-            </p>
-          </div>
-
-          <div className="glass-card p-5 rounded-2xl space-y-3 relative">
-            <div className="font-heading text-3xl font-black text-indigo-500/40">02</div>
-            <h3 className="font-heading text-base font-bold text-white">ML Inference</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Evaluates Random Forest, XGBoost & LightGBM classifiers to generate class probability distributions.
-            </p>
-          </div>
-
-          <div className="glass-card p-5 rounded-2xl space-y-3 relative">
-            <div className="font-heading text-3xl font-black text-indigo-500/40">03</div>
-            <h3 className="font-heading text-base font-bold text-white">SHAP Attribution</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Computes game-theoretic Shapley values to highlight exact positive & negative severity factors.
-            </p>
-          </div>
-
-          <div className="glass-card p-5 rounded-2xl space-y-3 relative">
-            <div className="font-heading text-3xl font-black text-indigo-500/40">04</div>
-            <h3 className="font-heading text-base font-bold text-white">What-If Shift</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Simulates real-time parameter changes to test how risk probabilities decrease under safety interventions.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* 4. DATASET ISOLATION ARCHITECTURE SECTION */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-        <div className="glass-card p-6 sm:p-8 rounded-3xl border border-indigo-500/25 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="p-2.5 rounded-xl bg-indigo-950/80 border border-indigo-800/60 text-indigo-300">
-              <Database className="w-5 h-5" />
-            </div>
-            <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-indigo-950 text-indigo-300 border border-indigo-800">
-              PRIMARY ML & GEOGRAPHY
-            </span>
-          </div>
-
-          <h3 className="font-heading text-xl font-bold text-white">Dataset 1: Indian Roads Dataset</h3>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            20,000 records powering the 5 ML classification models, SHAP Explainable AI, What-If simulator, and India GIS Risk Map.
-          </p>
-
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            <span className="text-[10px] px-3 py-1 rounded-full bg-white/5 text-slate-300 border border-white/10">3 Severity Classes</span>
-            <span className="text-[10px] px-3 py-1 rounded-full bg-white/5 text-slate-300 border border-white/10">Random Forest Best Model</span>
-            <span className="text-[10px] px-3 py-1 rounded-full bg-white/5 text-slate-300 border border-white/10">SHAP Values</span>
-          </div>
-        </div>
-
-        <div className="glass-card p-6 sm:p-8 rounded-3xl border border-white/10 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-300">
-              <Layers className="w-5 h-5" />
-            </div>
-            <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-white/5 text-slate-300 border border-white/10">
-              INDEPENDENT FACTORS
-            </span>
-          </div>
-
-          <h3 className="font-heading text-xl font-bold text-white">Dataset 2: Road.csv Factors</h3>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            12,316 records evaluated as an independent exploratory pipeline covering driver demographics, vehicle defects, and casualty metrics.
-          </p>
-
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            <span className="text-[10px] px-3 py-1 rounded-full bg-white/5 text-slate-300 border border-white/10">Driver Experience</span>
-            <span className="text-[10px] px-3 py-1 rounded-full bg-white/5 text-slate-300 border border-white/10">Vehicle Service Age</span>
-            <span className="text-[10px] px-3 py-1 rounded-full bg-white/5 text-slate-300 border border-white/10">Casualty Severity</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 5. INTERACTIVE FAQ ACCORDION */}
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="text-center space-y-2">
-          <h2 className="font-heading text-2xl font-bold text-white">Frequently Asked Questions</h2>
-          <p className="text-xs text-slate-400">Technical insights on models, datasets, and explainability</p>
-        </div>
-
-        <div className="space-y-3">
-          {faqs.map((faq, index) => {
-            const isOpen = openFaq === index;
-            return (
-              <div
-                key={index}
-                className="glass-card rounded-2xl border border-white/10 overflow-hidden transition-all"
-              >
-                <button
-                  onClick={() => setOpenFaq(isOpen ? null : index)}
-                  className="w-full p-5 text-left flex items-center justify-between text-sm font-semibold text-white cursor-pointer hover:text-indigo-400 transition-colors"
-                >
-                  <span>{faq.q}</span>
-                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180 text-indigo-400' : ''}`} />
-                </button>
-                {isOpen && (
-                  <div className="px-5 pb-5 text-xs text-slate-300 leading-relaxed border-t border-white/5 pt-3">
-                    {faq.a}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
+			<section className="border-t border-line bg-surface" aria-labelledby="final-title">
+				<div
+					className={`${container} grid min-h-[270px] items-center gap-8 py-14 md:grid-cols-[1fr_auto] md:py-16`}
+				>
+					<div>
+						<h2
+							id="final-title"
+							className="m-0 max-w-[16ch] text-[clamp(2.2rem,4vw,3.7rem)] font-semibold leading-[1.03] tracking-[-0.045em]"
+						>
+							Start with the conditions you know.
+						</h2>
+						<p className="mt-4 max-w-[520px] text-[16px] leading-7 text-muted">
+							Build a road scenario, then inspect the predicted severity and its explanation.
+						</p>
+					</div>
+					<button className={primaryButton} type="button" onClick={() => setActiveTab("predict")}>
+						Predict severity <ArrowRight size={17} />
+					</button>
+				</div>
+			</section>
+		</div>
+	);
 };

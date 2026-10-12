@@ -1,214 +1,183 @@
-import React, { useEffect, useState } from 'react';
-import type { ModelMetricsResponse, BestModelInfo } from '../types';
-import { Award, BarChart2, Grid3X3, CheckCircle2 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { safeFetchJson, FALLBACK_BEST_MODEL } from '../api/client';
+import React, { useCallback, useEffect, useState } from 'react';
+import type { BestModelInfo, ModelMetricsResponse } from '../types';
+import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { RefreshCw } from 'lucide-react';
+import { FALLBACK_BEST_MODEL, safeFetchJson } from '../api/client';
+import { ui } from '../ui';
 
 const DEFAULT_METRICS: ModelMetricsResponse = {
-  best_model_name: "Tuned Logistic Regression",
+  best_model_name: 'Tuned Logistic Regression',
   metrics: {
-    "Tuned Logistic Regression": {
+    'Tuned Logistic Regression': {
       accuracy: 0.8592,
-      macro_precision: 0.7840,
-      macro_recall: 0.8120,
-      macro_f1: 0.7980,
-      weighted_precision: 0.8450,
+      macro_precision: 0.784,
+      macro_recall: 0.812,
+      macro_f1: 0.798,
+      weighted_precision: 0.845,
       weighted_recall: 0.8592,
-      weighted_f1: 0.8250,
+      weighted_f1: 0.825,
       per_class: {
         minor: { precision: 0.86, recall: 0.92, f1_score: 0.89, support: 10415 },
         major: { precision: 0.74, recall: 0.68, f1_score: 0.71, support: 1743 },
-        fatal: { precision: 0.65, recall: 0.75, f1_score: 0.70, support: 158 }
+        fatal: { precision: 0.65, recall: 0.75, f1_score: 0.7, support: 158 },
       },
-      confusion_matrix: [[118, 25, 15], [82, 1185, 476], [12, 420, 9983]]
-    }
-  }
+      confusion_matrix: [[118, 25, 15], [82, 1185, 476], [12, 420, 9983]],
+    },
+  },
 };
+
+const tooltipStyle = {
+  backgroundColor: '#fcfdff',
+  borderColor: '#d9e1ec',
+  borderRadius: '10px',
+  fontSize: '12px',
+  color: '#101828',
+};
+
+const classLabels = ['Fatal', 'Major', 'Minor'];
 
 export const ModelComparison: React.FC = () => {
   const [data, setData] = useState<ModelMetricsResponse>(DEFAULT_METRICS);
   const [bestModel, setBestModel] = useState<BestModelInfo | null>(FALLBACK_BEST_MODEL);
-  const [selectedModel, setSelectedModel] = useState<string>("Tuned Logistic Regression");
+  const [selectedModel, setSelectedModel] = useState('Tuned Logistic Regression');
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchMetrics();
+  const fetchMetrics = useCallback(async () => {
+    try {
+      const [metrics, best] = await Promise.all([
+        safeFetchJson<ModelMetricsResponse>('/api/ml/metrics', undefined, DEFAULT_METRICS),
+        safeFetchJson<BestModelInfo>('/api/ml/best-model', undefined, FALLBACK_BEST_MODEL),
+      ]);
+
+      if (metrics?.metrics) {
+        setData(metrics);
+        const names = Object.keys(metrics.metrics);
+        if (names.length > 0) setSelectedModel(metrics.best_model_name || names[0]);
+      }
+      if (best?.model_name) setBestModel(best);
+    } catch (error) {
+      console.log('Using default model metrics data:', error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const fetchMetrics = async () => {
-    try {
-      const [resMetrics, resBest] = await Promise.all([
-        safeFetchJson<ModelMetricsResponse>('/api/ml/metrics', undefined, DEFAULT_METRICS),
-        safeFetchJson<BestModelInfo>('/api/ml/best-model', undefined, FALLBACK_BEST_MODEL)
-      ]);
-      if (resMetrics?.metrics) {
-        setData(resMetrics);
-        const keys = Object.keys(resMetrics.metrics);
-        if (keys.length > 0) setSelectedModel(keys[0]);
-      }
-      if (resBest?.model_name) setBestModel(resBest);
-    } catch (e) {
-      console.log('Using default model metrics data:', e);
-    }
+  useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- state updates happen after the metrics requests resolve.
+    void fetchMetrics();
+  }, [fetchMetrics]);
+
+  const refreshMetrics = () => {
+    setLoading(true);
+    void fetchMetrics();
   };
 
-  const chartData = Object.entries(data.metrics).map(([modelName, m]) => ({
+  const chartData = Object.entries(data.metrics).map(([modelName, metric]) => ({
     model: modelName,
-    Accuracy: Number((m.accuracy * 100).toFixed(1)),
-    'Macro F1': Number((m.macro_f1 * 100).toFixed(1)),
-    'Fatal Recall': Number(((m.per_class?.fatal?.recall || 0) * 100).toFixed(1))
+    Accuracy: Number((metric.accuracy * 100).toFixed(1)),
+    'Macro F1': Number((metric.macro_f1 * 100).toFixed(1)),
+    'Fatal recall': Number(((metric.per_class?.fatal?.recall || 0) * 100).toFixed(1)),
   }));
 
-  const activeMetrics = data.metrics[selectedModel] || Object.values(data.metrics)[0] || DEFAULT_METRICS.metrics["Tuned Logistic Regression"];
+  const activeMetrics = data.metrics[selectedModel]
+    || Object.values(data.metrics)[0]
+    || DEFAULT_METRICS.metrics['Tuned Logistic Regression'];
 
   return (
-    <div className="space-y-6 py-2">
-      <div className="border-b border-slate-800 pb-4">
-        <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2.5 tracking-tight">
-          <Award className="w-6 h-6 text-indigo-400" />
-          <span>Tuned Model Performance Evaluation</span>
-        </h1>
-        <p className="text-xs text-slate-400 mt-1">
-          Detailed performance evaluation metrics and classification attributes for Tuned Logistic Regression
-        </p>
-      </div>
-
-      {/* BEST MODEL HIGHLIGHT */}
-      <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-indigo-600/20 border border-indigo-500/30 text-indigo-400">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xs text-slate-400 font-medium">Active Classification Model</div>
-            <div className="text-lg font-bold text-slate-100">{data.best_model_name}</div>
-          </div>
+    <div className={ui.page}>
+      <header className={ui.header}>
+        <div>
+          <h1>Choose the model by evidence.</h1>
+          <p>Compare balanced performance, fatal-case recall, and classification errors on the same held-out test split.</p>
         </div>
-
-        <div className="flex items-center gap-4 text-xs font-mono">
-          <div>
-            <span className="text-slate-400 block text-[10px]">Macro F1</span>
-            <span className="font-bold text-indigo-400">
-              {bestModel ? `${(bestModel.macro_f1).toFixed(1)}%` : '79.8%'}
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-400 block text-[10px]">Accuracy</span>
-            <span className="font-bold text-slate-200">
-              {bestModel ? `${(bestModel.accuracy).toFixed(1)}%` : '85.9%'}
-            </span>
-          </div>
+        <div className={ui.headerActions}>
+          <button className={ui.button} type="button" onClick={refreshMetrics} disabled={loading}>
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Refresh metrics
+          </button>
         </div>
-      </div>
+      </header>
 
-      {/* COMPARISON BAR CHART */}
-      <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-            <BarChart2 className="w-4 h-4 text-indigo-400" />
-            <span>Classification Performance Metrics</span>
-          </h3>
-          <span className="text-xs text-slate-400">Trained Pipeline Evaluation</span>
+      <section className="mb-8 grid items-end gap-8 py-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(430px,0.85fr)] lg:gap-16" aria-label="Selected model summary">
+        <div>
+          <span className="text-[12px] font-semibold text-muted">Selected for inference</span>
+          <h2 className="mt-2 max-w-[620px] text-[clamp(2.7rem,5.6vw,5.6rem)] font-semibold leading-[0.96] tracking-[-0.06em] text-ink">{data.best_model_name}</h2>
         </div>
+        <dl className="m-0 grid grid-cols-3 border-t border-line [&>div]:grid [&>div]:gap-1.5 [&>div]:border-b [&>div]:border-line [&>div]:py-4 [&_dt]:text-[11px] [&_dt]:text-muted [&_dd]:m-0 [&_dd]:text-[22px] [&_dd]:font-semibold [&_dd]:tracking-[-0.035em]">
+          <div><dt>Macro F1</dt><dd>{bestModel ? bestModel.macro_f1.toFixed(1) : '79.8'}%</dd></div>
+          <div><dt>Accuracy</dt><dd>{bestModel ? bestModel.accuracy.toFixed(1) : '85.9'}%</dd></div>
+          <div><dt>Fatal recall</dt><dd>{bestModel ? bestModel.fatal_recall.toFixed(1) : '75.0'}%</dd></div>
+        </dl>
+      </section>
 
-        <div className="h-72 w-full">
-          <ResponsiveContainer width="100%" height={260} minHeight={260}>
-            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-              <XAxis dataKey="model" stroke="#64748b" fontSize={11} />
-              <YAxis stroke="#64748b" fontSize={11} domain={[0, 100]} />
-              <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.5rem', fontSize: '12px' }} />
-              <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '12px' }} />
-              <Bar dataKey="Accuracy" fill="#6366f1" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Macro F1" fill="#10b981" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Fatal Recall" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+      <section className={ui.panel} aria-labelledby="comparison-title">
+        <div className={ui.panelHeader}>
+          <div><h2 id="comparison-title">Performance on the held-out split</h2><p>All models are evaluated against the same records.</p></div>
+        </div>
+        <div className={`${ui.panelBody} ${ui.chart}`}>
+          <ResponsiveContainer width="100%" height={310} minHeight={310}>
+            <BarChart data={chartData} margin={{ top: 12, right: 12, left: -8, bottom: 0 }}>
+              <XAxis dataKey="model" stroke="#667085" fontSize={11} axisLine={false} tickLine={false} />
+              <YAxis stroke="#7a8799" fontSize={11} domain={[0, 100]} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: '#f1f5fa' }} />
+              <Legend verticalAlign="top" height={38} wrapperStyle={{ fontSize: '12px' }} />
+              <Bar dataKey="Accuracy" fill="#175cd3" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Macro F1" fill="#6d8fc3" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Fatal recall" fill="#b42318" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </section>
 
-      {/* DETAILED MATRIX & PER-CLASS BREAKDOWN */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* MODEL SUMMARY */}
-        <div className="lg:col-span-6 bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-3">
-          <h3 className="text-sm font-semibold text-slate-100">Model Metric Summary</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+      <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(350px,0.75fr)] lg:gap-12">
+        <section className="min-w-0" aria-labelledby="leaderboard-title">
+          <div className="mb-4 [&_h2]:m-0 [&_h2]:text-[19px] [&_h2]:font-semibold [&_p]:mt-1 [&_p]:text-[12px] [&_p]:text-muted">
+            <h2 id="leaderboard-title">Model leaderboard</h2>
+            <p>Select a row to inspect its classification errors.</p>
+          </div>
+          <div className="overflow-x-auto border-t border-line">
+            <table className="w-full border-collapse text-left text-[12px] [&_th]:border-b [&_th]:border-line [&_th]:px-3 [&_th]:py-3 [&_th]:font-semibold [&_th]:text-muted [&_td]:border-b [&_td]:border-line [&_td]:px-3 [&_td]:py-3">
               <thead>
-                <tr className="border-b border-slate-800 text-slate-400">
-                  <th className="pb-2 font-medium">Model</th>
-                  <th className="pb-2 font-medium text-right">Accuracy</th>
-                  <th className="pb-2 font-medium text-right">Macro F1</th>
-                  <th className="pb-2 font-medium text-right">Fatal Recall</th>
-                </tr>
+                <tr><th>Model</th><th>Accuracy</th><th>Macro F1</th><th>Fatal recall</th></tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {Object.entries(data.metrics).map(([name, m]) => (
-                  <tr 
-                    key={name}
-                    onClick={() => setSelectedModel(name)}
-                    className={`cursor-pointer transition-colors ${selectedModel === name ? 'bg-indigo-950/40 font-semibold' : 'hover:bg-slate-800/40'}`}
-                  >
-                    <td className="py-2.5 text-slate-200">{name}</td>
-                    <td className="py-2.5 text-right font-mono text-slate-300">{(m.accuracy * 100).toFixed(1)}%</td>
-                    <td className="py-2.5 text-right font-mono text-indigo-400">{(m.macro_f1 * 100).toFixed(1)}%</td>
-                    <td className="py-2.5 text-right font-mono text-rose-400">{((m.per_class?.fatal?.recall || 0) * 100).toFixed(1)}%</td>
+              <tbody>
+                {Object.entries(data.metrics).map(([name, metric]) => (
+                  <tr key={name} className={selectedModel === name ? 'bg-brand-soft' : ''}>
+                    <td>
+                      <button className={`border-0 bg-transparent p-0 text-left font-semibold text-ink hover:text-brand ${ui.focus}`} type="button" onClick={() => setSelectedModel(name)} aria-pressed={selectedModel === name}>{name}</button>
+                    </td>
+                    <td>{(metric.accuracy * 100).toFixed(1)}%</td>
+                    <td>{(metric.macro_f1 * 100).toFixed(1)}%</td>
+                    <td>{((metric.per_class?.fatal?.recall || 0) * 100).toFixed(1)}%</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
 
-        {/* CONFUSION MATRIX FOR SELECTED MODEL */}
-        <div className="lg:col-span-6 bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-              <Grid3X3 className="w-4 h-4 text-indigo-400" />
-              <span>Confusion Matrix: {selectedModel}</span>
-            </h3>
+        <section aria-labelledby="matrix-title">
+          <div className="mb-4 [&_h2]:m-0 [&_h2]:text-[19px] [&_h2]:font-semibold [&_p]:mt-1 [&_p]:text-[12px] [&_p]:text-muted">
+            <h2 id="matrix-title">Confusion matrix</h2>
+            <p>{selectedModel}</p>
           </div>
-
-          <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
-            <div className="grid grid-cols-4 gap-2 text-center font-mono">
-              <div className="text-slate-500 font-sans text-[10px] self-center">Actual \ Pred</div>
-              <div className="text-rose-400 font-bold">Fatal</div>
-              <div className="text-amber-400 font-bold">Major</div>
-              <div className="text-emerald-400 font-bold">Minor</div>
-
-              <div className="text-rose-400 font-bold self-center text-left">Fatal</div>
-              <div className="p-2.5 rounded-xl bg-rose-950/90 border border-rose-500/50 text-rose-300 font-bold text-sm shadow-md">
-                {activeMetrics.confusion_matrix?.[0]?.[0] || 0}
-              </div>
-              <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-400">
-                {activeMetrics.confusion_matrix?.[0]?.[1] || 0}
-              </div>
-              <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-400">
-                {activeMetrics.confusion_matrix?.[0]?.[2] || 0}
-              </div>
-
-              <div className="text-amber-400 font-bold self-center text-left">Major</div>
-              <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-400">
-                {activeMetrics.confusion_matrix?.[1]?.[0] || 0}
-              </div>
-              <div className="p-2.5 rounded-xl bg-amber-950/90 border border-amber-500/50 text-amber-300 font-bold text-sm shadow-md">
-                {activeMetrics.confusion_matrix?.[1]?.[1] || 0}
-              </div>
-              <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-400">
-                {activeMetrics.confusion_matrix?.[1]?.[2] || 0}
-              </div>
-
-              <div className="text-emerald-400 font-bold self-center text-left">Minor</div>
-              <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-400">
-                {activeMetrics.confusion_matrix?.[2]?.[0] || 0}
-              </div>
-              <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-400">
-                {activeMetrics.confusion_matrix?.[2]?.[1] || 0}
-              </div>
-              <div className="p-2.5 rounded-xl bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 font-bold text-sm shadow-md">
-                {activeMetrics.confusion_matrix?.[2]?.[2] || 0}
-              </div>
-            </div>
+          <div className="grid grid-cols-[minmax(88px,1fr)_repeat(3,minmax(58px,0.8fr))] gap-2">
+            <span className="self-end text-[10px] text-muted">Actual / predicted</span>
+            {classLabels.map((label) => <span key={`column-${label}`} className="grid place-items-center text-[11px] font-semibold text-muted">{label}</span>)}
+            {classLabels.map((rowLabel, rowIndex) => (
+              <React.Fragment key={rowLabel}>
+                <span className="grid place-items-start self-center text-[11px] font-semibold text-muted">{rowLabel}</span>
+                {classLabels.map((columnLabel, columnIndex) => (
+                  <strong
+                    key={`${rowLabel}-${columnLabel}`}
+                    className={`grid min-h-[58px] place-items-center rounded-[10px] border text-[15px] font-semibold ${rowIndex === columnIndex ? 'border-[#adc4ea] bg-brand-soft text-brand-deep' : 'border-line bg-surface text-slate-600'}`}
+                  >
+                    {activeMetrics.confusion_matrix?.[rowIndex]?.[columnIndex] || 0}
+                  </strong>
+                ))}
+              </React.Fragment>
+            ))}
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

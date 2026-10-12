@@ -1,0 +1,21 @@
+export const ui = {
+  focus: 'cursor-pointer focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-brand/25',
+  page: 'w-full text-ink',
+  header: 'mb-8 grid items-end gap-6 border-b border-line pb-7 md:grid-cols-[minmax(0,1fr)_auto] lg:mb-9 lg:gap-9 [&_h1]:m-0 [&_h1]:max-w-[760px] [&_h1]:text-[clamp(2rem,3.4vw,3.2rem)] [&_h1]:font-semibold [&_h1]:leading-[1.04] [&_h1]:tracking-[-0.045em] [&_p]:mt-2.5 [&_p]:max-w-[690px] [&_p]:text-[15px] [&_p]:leading-6 [&_p]:text-muted',
+  headerActions: 'flex flex-wrap items-center gap-2.5 md:justify-end',
+  button: 'inline-flex min-h-[42px] cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-[11px] border border-line bg-surface px-4 text-[13px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-wait disabled:opacity-65 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-brand/25',
+  primaryButton: 'inline-flex min-h-[42px] cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-[11px] border border-brand bg-brand px-4 text-[13px] font-semibold text-white transition hover:border-brand-deep hover:bg-brand-deep active:scale-[0.98] disabled:cursor-wait disabled:opacity-65 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-brand/25',
+  panel: 'rounded-[16px] border border-line bg-surface',
+  panelHeader: 'flex items-start justify-between gap-6 border-b border-line px-5 py-4 sm:px-6 sm:py-5 [&_h2]:m-0 [&_h2]:text-[16px] [&_h2]:font-semibold [&_h2]:tracking-[-0.018em] [&_h3]:m-0 [&_h3]:text-[16px] [&_h3]:font-semibold [&_h3]:tracking-[-0.018em] [&_p]:mt-1.5 [&_p]:text-[12px] [&_p]:leading-5 [&_p]:text-muted',
+  panelBody: 'p-5 sm:p-6',
+  fields: 'grid gap-[18px] sm:grid-cols-2',
+  field: 'grid gap-2 [&_label]:text-[12px] [&_label]:font-semibold [&_label]:text-slate-700 [&_select]:min-h-[43px] [&_select]:w-full [&_select]:rounded-[10px] [&_select]:border [&_select]:border-slate-300 [&_select]:bg-surface [&_select]:px-3 [&_select]:text-[13px] [&_select]:text-ink [&_select]:outline-none focus-within:[&_select]:border-brand focus-within:[&_select]:ring-3 focus-within:[&_select]:ring-brand/10 [&_input[type=text]]:min-h-[43px] [&_input[type=text]]:w-full [&_input[type=text]]:rounded-[10px] [&_input[type=text]]:border [&_input[type=text]]:border-slate-300 [&_input[type=text]]:bg-surface [&_input[type=text]]:px-3 [&_input[type=text]]:text-[13px] [&_input[type=text]]:text-ink [&_input[type=text]]:outline-none [&_input[type=text]:read-only]:bg-slate-100 [&_input[type=text]:read-only]:text-slate-600',
+  note: 'flex items-start gap-3 border-l-[3px] border-brand bg-brand-soft px-4 py-4 text-[13px] leading-5 text-slate-700 [&>svg]:shrink-0 [&>svg]:text-brand',
+  loading: 'grid min-h-[420px] place-items-center text-muted [&>div]:flex [&>div]:items-center [&>div]:gap-3 [&>div]:text-[13px] [&_svg]:text-brand',
+  empty: 'grid min-h-[360px] content-center justify-items-start rounded-[16px] border border-line bg-surface p-8 sm:p-12 lg:p-16 [&_h2]:m-0 [&_h2]:text-[22px] [&_h2]:font-semibold [&_h2]:tracking-[-0.025em] [&_h3]:m-0 [&_h3]:text-[22px] [&_h3]:font-semibold [&_p]:mt-2.5 [&_p]:max-w-[470px] [&_p]:text-[14px] [&_p]:leading-6 [&_p]:text-muted',
+  emptyIcon: 'mb-5 grid size-[54px] place-items-center rounded-[14px] bg-brand-soft text-brand',
+  tabs: 'mb-7 flex gap-6 overflow-x-auto border-b border-line [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+  tab: 'relative flex min-h-12 shrink-0 cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-[13px] font-semibold text-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-brand/20',
+  activeTab: 'text-ink after:absolute after:inset-x-0 after:bottom-[-1px] after:h-0.5 after:bg-brand',
+  chart: 'min-h-[280px] w-full'
+} as const;

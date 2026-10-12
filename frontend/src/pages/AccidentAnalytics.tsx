@@ -1,423 +1,390 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  BarChart, Bar, AreaChart, Area, PieChart, Pie, XAxis, YAxis, Tooltip, ResponsiveContainer, 
-  Cell, Legend
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  AlertOctagon,
+  BarChart3,
+  Building2,
+  Car,
+  Clock,
+  CloudRain,
+  MapPin,
+  RefreshCw,
+  TrendingUp
+} from 'lucide-react';
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
 } from 'recharts';
-import { BarChart3, Building2, MapPin, Clock, CloudRain, Car, AlertOctagon, RefreshCw, PieChart as PieIcon, TrendingUp } from 'lucide-react';
-
-import { 
-  safeFetchJson, FALLBACK_CITIES, FALLBACK_STATES, 
-  FALLBACK_TIME, FALLBACK_WEATHER, FALLBACK_ROADS, FALLBACK_CAUSES 
+import {
+  FALLBACK_CAUSES,
+  FALLBACK_CITIES,
+  FALLBACK_ROADS,
+  FALLBACK_STATES,
+  FALLBACK_TIME,
+  FALLBACK_WEATHER,
+  safeFetchJson
 } from '../api/client';
+import { ui } from '../ui';
+
+type AnalyticsTab = 'city' | 'state' | 'time' | 'weather' | 'road' | 'cause';
+
+interface SeverityDatum {
+  [key: string]: string | number | undefined;
+  total: number;
+  minor: number;
+  major: number;
+  fatal: number;
+}
+
+interface CityDatum extends SeverityDatum {
+  city: string;
+  state: string;
+  total_accidents?: number;
+}
+
+interface StateDatum extends SeverityDatum {
+  state: string;
+}
+
+interface WeatherDatum extends SeverityDatum {
+  weather: string;
+}
+
+interface RoadDatum extends SeverityDatum {
+  road_type: string;
+}
+
+interface CauseDatum {
+  cause: string;
+  total: number;
+  fatal: number;
+}
+
+interface TimeDatum extends SeverityDatum {
+  hour: number;
+  accidents?: number;
+}
+
+interface TimeData {
+  hourly: TimeDatum[];
+}
+
+interface RoadData {
+  road_types?: RoadDatum[];
+  by_type?: RoadDatum[];
+}
+
+const tabs: Array<{ id: AnalyticsTab; label: string; icon: React.ReactNode }> = [
+  { id: 'city', label: 'Cities', icon: <MapPin size={15} /> },
+  { id: 'state', label: 'States', icon: <Building2 size={15} /> },
+  { id: 'time', label: 'Time', icon: <Clock size={15} /> },
+  { id: 'weather', label: 'Weather', icon: <CloudRain size={15} /> },
+  { id: 'road', label: 'Roads', icon: <Car size={15} /> },
+  { id: 'cause', label: 'Causes', icon: <AlertOctagon size={15} /> }
+];
+
+const tooltipStyle = {
+  backgroundColor: '#ffffff',
+  border: '1px solid #d9e1ec',
+  borderRadius: '10px',
+  boxShadow: '0 12px 28px rgb(16 24 40 / 0.12)',
+  color: '#101828',
+  fontSize: '12px'
+};
+
+const formatLabel = (value: unknown) => String(value).replaceAll('_', ' ').replace(/\b\w/g, (character) => character.toUpperCase());
+
+interface DistributionChartProps {
+  data: SeverityDatum[];
+  dataKey: string;
+  layout?: 'horizontal' | 'vertical';
+}
+
+const DistributionChart: React.FC<DistributionChartProps> = ({ data, dataKey, layout = 'horizontal' }) => (
+  <div className={`${ui.chart} min-h-[340px]`}>
+    <ResponsiveContainer width="100%" height={340} minHeight={340}>
+      <BarChart
+        data={data}
+        layout={layout}
+        margin={layout === 'vertical' ? { top: 8, right: 24, bottom: 8, left: 54 } : { top: 8, right: 10, bottom: 20, left: 0 }}
+      >
+        <CartesianGrid strokeDasharray="2 5" vertical={layout !== 'vertical'} horizontal={layout === 'vertical'} />
+        {layout === 'vertical' ? (
+          <>
+            <XAxis type="number" fontSize={11} />
+            <YAxis type="category" dataKey={dataKey} width={118} fontSize={11} tickFormatter={formatLabel} />
+          </>
+        ) : (
+          <>
+            <XAxis dataKey={dataKey} fontSize={11} interval={0} tickFormatter={formatLabel} />
+            <YAxis fontSize={11} />
+          </>
+        )}
+        <Tooltip contentStyle={tooltipStyle} formatter={(value) => Number(value).toLocaleString()} />
+        <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '14px' }} />
+        <Bar dataKey="minor" stackId="severity" fill="#19725d" name="Minor" radius={layout === 'vertical' ? [0, 0, 0, 0] : [3, 3, 0, 0]} />
+        <Bar dataKey="major" stackId="severity" fill="#d28a2d" name="Major" />
+        <Bar dataKey="fatal" stackId="severity" fill="#b42318" name="Fatal" radius={layout === 'vertical' ? [0, 3, 3, 0] : [3, 3, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
+);
 
 export const AccidentAnalytics: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'city' | 'state' | 'time' | 'weather' | 'road' | 'cause'>('city');
-
-  const [cityList, setCityList] = useState<any[]>(FALLBACK_CITIES);
+  const [activeTab, setActiveTab] = useState<AnalyticsTab>('city');
+  const [cityList, setCityList] = useState<CityDatum[]>(FALLBACK_CITIES);
   const [selectedCity, setSelectedCity] = useState('Mumbai');
-  const [cityDetails, setCityDetails] = useState<any>(FALLBACK_CITIES[0]);
-
-  const [stateData, setStateData] = useState<any[]>(FALLBACK_STATES);
-  const [timeData, setTimeData] = useState<any>(FALLBACK_TIME);
-  const [weatherData, setWeatherData] = useState<any[]>(FALLBACK_WEATHER);
-  const [roadData, setRoadData] = useState<any>(FALLBACK_ROADS);
-  const [causeData, setCauseData] = useState<any[]>(FALLBACK_CAUSES);
-  const [loading, setLoading] = useState(false);
+  const [cityDetails, setCityDetails] = useState<CityDatum>(FALLBACK_CITIES[0]);
+  const [stateData, setStateData] = useState<StateDatum[]>(FALLBACK_STATES);
+  const [timeData, setTimeData] = useState<TimeData>(FALLBACK_TIME);
+  const [weatherData, setWeatherData] = useState<WeatherDatum[]>(FALLBACK_WEATHER);
+  const [roadData, setRoadData] = useState<RoadData>(FALLBACK_ROADS);
+  const [causeData, setCauseData] = useState<CauseDatum[]>(FALLBACK_CAUSES);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchAllAnalytics();
+    let active = true;
+
+    Promise.all([
+      safeFetchJson<CityDatum[]>('/api/analytics/cities', undefined, FALLBACK_CITIES),
+      safeFetchJson<StateDatum[]>('/api/analytics/states', undefined, FALLBACK_STATES),
+      safeFetchJson<TimeData>('/api/analytics/time', undefined, FALLBACK_TIME),
+      safeFetchJson<WeatherDatum[]>('/api/analytics/weather', undefined, FALLBACK_WEATHER),
+      safeFetchJson<RoadData>('/api/analytics/roads', undefined, FALLBACK_ROADS),
+      safeFetchJson<CauseDatum[]>('/api/analytics/causes', undefined, FALLBACK_CAUSES)
+    ])
+      .then(([cities, states, time, weather, roads, causes]) => {
+        if (!active) return;
+        if (Array.isArray(cities)) setCityList(cities);
+        if (Array.isArray(states)) setStateData(states);
+        if (time?.hourly) setTimeData(time);
+        if (Array.isArray(weather)) setWeatherData(weather);
+        if (roads?.road_types || roads?.by_type) setRoadData(roads);
+        if (Array.isArray(causes)) setCauseData(causes);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
-    if (selectedCity) fetchCityDetails(selectedCity);
-  }, [selectedCity]);
+    let active = true;
+    const fallback = cityList.find((city) => city.city === selectedCity) || FALLBACK_CITIES[0];
+    safeFetchJson<CityDatum>(`/api/analytics/cities?city=${encodeURIComponent(selectedCity)}`, undefined, fallback)
+      .then((data) => {
+        if (active) setCityDetails(data);
+      });
 
-  const fetchAllAnalytics = async () => {
-    setLoading(true);
-    try {
-      const [resCities, resStates, resTime, resWeather, resRoads, resCauses] = await Promise.all([
-        safeFetchJson('/api/analytics/cities', undefined, FALLBACK_CITIES),
-        safeFetchJson('/api/analytics/states', undefined, FALLBACK_STATES),
-        safeFetchJson('/api/analytics/time', undefined, FALLBACK_TIME),
-        safeFetchJson('/api/analytics/weather', undefined, FALLBACK_WEATHER),
-        safeFetchJson('/api/analytics/roads', undefined, FALLBACK_ROADS),
-        safeFetchJson('/api/analytics/causes', undefined, FALLBACK_CAUSES)
-      ]);
+    return () => {
+      active = false;
+    };
+  }, [cityList, selectedCity]);
 
-      if (Array.isArray(resCities)) setCityList(resCities);
-      if (Array.isArray(resStates)) setStateData(resStates);
-      if (resTime?.hourly) setTimeData(resTime);
-      if (Array.isArray(resWeather)) setWeatherData(resWeather);
-      if (resRoads?.road_types) setRoadData(resRoads);
-      if (Array.isArray(resCauses)) setCauseData(resCauses);
-    } catch (e) {
-      console.error('Error fetching analytics:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const currentCity = useMemo(() => {
+    const listedCity = cityList.find((city) => city.city === selectedCity) || cityList[0] || FALLBACK_CITIES[0];
+    const details = cityDetails?.city === selectedCity ? cityDetails : listedCity;
+    return {
+      ...listedCity,
+      ...details,
+      total: details.total || details.total_accidents || listedCity.total
+    };
+  }, [cityDetails, cityList, selectedCity]);
 
-  const fetchCityDetails = async (city: string) => {
-    try {
-      const fallback = FALLBACK_CITIES.find(c => c.city === city) || FALLBACK_CITIES[0];
-      const data = await safeFetchJson(`/api/analytics/cities?city=${city}`, undefined, fallback);
-      setCityDetails(data);
-    } catch (e) {
-      console.error('Error fetching city details:', e);
-    }
-  };
+  const highestHour = useMemo(() => (
+    timeData.hourly.reduce(
+      (highest, hour) => (hour.total > highest.total ? hour : highest),
+      timeData.hourly[0] || FALLBACK_TIME.hourly[0]
+    )
+  ), [timeData]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-3 text-slate-300 font-medium text-xs">
-          <RefreshCw className="w-5 h-5 animate-spin text-indigo-400" />
-          <span>Loading Dataset 1 analytics...</span>
-        </div>
-      </div>
-    );
+    return <div className={ui.loading}><div><RefreshCw className="animate-spin" size={20} /> Preparing the research view</div></div>;
   }
 
-  return (
-    <div className="space-y-6 py-2">
-      <div className="border-b border-slate-800 pb-4">
-        <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2.5 tracking-tight">
-          <BarChart3 className="w-6 h-6 text-indigo-400" />
-          <span>Accident Trends & Analytics Visualizer</span>
-        </h1>
-        <p className="text-xs text-slate-400 mt-1">
-          Historical accident factor distribution across Indian road networks (Dataset 1)
-        </p>
-      </div>
+  const citySeverity = [
+    { label: 'Minor', value: currentCity.minor, color: '#19725d' },
+    { label: 'Major', value: currentCity.major, color: '#d28a2d' },
+    { label: 'Fatal', value: currentCity.fatal, color: '#b42318' }
+  ];
+  const currentCityTotal = Math.max(currentCity.total, 1);
 
-      {/* TABS HEADER */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-800 scrollbar-none">
-        {[
-          { id: 'city', label: 'City Analysis', icon: <MapPin className="w-3.5 h-3.5" /> },
-          { id: 'state', label: 'State Analysis', icon: <Building2 className="w-3.5 h-3.5" /> },
-          { id: 'time', label: 'Time & Hourly Curve', icon: <Clock className="w-3.5 h-3.5" /> },
-          { id: 'weather', label: 'Weather Hazard', icon: <CloudRain className="w-3.5 h-3.5" /> },
-          { id: 'road', label: 'Road Infrastructure', icon: <Car className="w-3.5 h-3.5" /> },
-          { id: 'cause', label: 'Accident Causes', icon: <AlertOctagon className="w-3.5 h-3.5" /> },
-        ].map(t => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id as any)}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === t.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-slate-200'
-            }`}
-          >
-            {t.icon}
-            <span>{t.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* TAB CONTENT: CITY */}
-      {activeTab === 'city' && (
-        <div className="space-y-5">
-          <div className="glass-card p-4 rounded-2xl border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-indigo-400" />
-              <label className="font-bold text-slate-300">Select Target Metro City:</label>
-              <select
-                value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
-                className="bg-black/80 border border-white/15 rounded-xl px-3 py-1.5 text-white font-bold focus:border-indigo-500 focus:outline-none cursor-pointer"
-              >
-                {cityList.map(c => (
-                  <option key={c.city} value={c.city}>{c.city} ({c.total || c.total_accidents || (c.minor + c.major + c.fatal)} incidents)</option>
-                ))}
+  const renderPanel = () => {
+    if (activeTab === 'city') {
+      return (
+        <div className="grid items-start gap-11 pt-2 lg:grid-cols-[minmax(280px,0.68fr)_minmax(540px,1.32fr)] lg:gap-[clamp(2.75rem,7vw,5.75rem)]">
+          <aside className="grid gap-8 pt-2.5">
+            <div className={ui.field}>
+              <label htmlFor="analytics-city">City in focus</label>
+              <select id="analytics-city" value={selectedCity} onChange={(event) => setSelectedCity(event.target.value)}>
+                {cityList.map((city) => <option key={city.city} value={city.city}>{city.city}</option>)}
               </select>
             </div>
-            <span className="text-[11px] font-mono text-indigo-300 bg-indigo-950/80 px-3 py-1 rounded-xl border border-indigo-800/60">
-              Interactive City Breakdown
-            </span>
-          </div>
-
-          {(() => {
-            const selectedObj = cityList.find(c => c.city === selectedCity) || cityList[0] || FALLBACK_CITIES[0];
-            const currentCity = cityDetails || selectedObj;
-
-            const minorCount = currentCity.minor ?? selectedObj?.minor ?? 0;
-            const majorCount = currentCity.major ?? selectedObj?.major ?? 0;
-            const fatalCount = currentCity.fatal ?? selectedObj?.fatal ?? 0;
-            const totalAccidents = currentCity.total || currentCity.total_accidents || selectedObj?.total || (minorCount + majorCount + fatalCount) || 1;
-            const stateName = currentCity.state || selectedObj?.state || 'Maharashtra';
-
-            const fatalPct = ((fatalCount / totalAccidents) * 100).toFixed(1);
-            const majorPct = ((majorCount / totalAccidents) * 100).toFixed(1);
-            const minorPct = ((minorCount / totalAccidents) * 100).toFixed(1);
-
-            const cityPie = [
-              { name: 'Minor Injury', value: minorCount, color: '#10b981' },
-              { name: 'Major Injury', value: majorCount, color: '#f59e0b' },
-              { name: 'Fatal Severity', value: fatalCount, color: '#f43f5e' }
-            ];
-
-            return (
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-                {/* BAR CHART & COUNTS */}
-                <div className="md:col-span-7 glass-card p-6 rounded-3xl border border-white/10 space-y-4 shadow-xl">
-                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                    <h3 className="font-heading text-base font-bold text-white flex items-center gap-2">
-                      <BarChart3 className="w-4 h-4 text-indigo-400" />
-                      <span>Severity Breakdown in {selectedCity}</span>
-                    </h3>
-                    <span className="text-xs text-slate-400 font-mono">Dataset 1 Incidents</span>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3 text-center">
-                    <div className="p-3 rounded-2xl bg-black/60 border border-emerald-500/30">
-                      <div className="text-[10px] text-slate-400 font-bold uppercase">Minor</div>
-                      <div className="text-xl font-black text-emerald-400">{minorCount.toLocaleString()}</div>
-                    </div>
-                    <div className="p-3 rounded-2xl bg-black/60 border border-amber-500/30">
-                      <div className="text-[10px] text-slate-400 font-bold uppercase">Major</div>
-                      <div className="text-xl font-black text-amber-400">{majorCount.toLocaleString()}</div>
-                    </div>
-                    <div className="p-3 rounded-2xl bg-black/60 border border-rose-500/30">
-                      <div className="text-[10px] text-slate-400 font-bold uppercase">Fatal</div>
-                      <div className="text-xl font-black text-rose-400">{fatalCount.toLocaleString()}</div>
-                    </div>
-                  </div>
-
-                  <div className="h-64 w-full pt-2">
-                    <ResponsiveContainer width="100%" height={240} minHeight={240}>
-                      <BarChart data={cityPie} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="minorGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#10b981" stopOpacity={0.9}/>
-                            <stop offset="100%" stopColor="#047857" stopOpacity={0.6}/>
-                          </linearGradient>
-                          <linearGradient id="majorGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.9}/>
-                            <stop offset="100%" stopColor="#b45309" stopOpacity={0.6}/>
-                          </linearGradient>
-                          <linearGradient id="fatalGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.9}/>
-                            <stop offset="100%" stopColor="#be123c" stopOpacity={0.6}/>
-                          </linearGradient>
-                        </defs>
-                        <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
-                        <YAxis stroke="#94a3b8" fontSize={11} />
-                        <Tooltip contentStyle={{ backgroundColor: '#09090d', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '12px', color: '#fff' }} />
-                        <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                          {cityPie.map((b, i) => (
-                            <Cell key={i} fill={b.color} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+            <div>
+              <span className="text-[12px] font-semibold text-muted">{currentCity.state}</span>
+              <strong className="my-2 block text-[clamp(4.2rem,7vw,7rem)] font-medium leading-[0.9] tracking-[-0.075em] text-ink">{currentCity.total.toLocaleString()}</strong>
+              <p className="m-0 text-[12px] text-muted">recorded accidents in this dataset</p>
+            </div>
+            <div className="border-t border-line">
+              {citySeverity.map((item) => (
+                <div className="grid min-h-[50px] grid-cols-[4px_minmax(80px,1fr)_auto_48px] items-center gap-3 border-b border-line text-[12px]" key={item.label}>
+                  <i className="h-6 w-1 rounded-[2px]" style={{ backgroundColor: item.color }} />
+                  <span className="font-semibold text-slate-700">{item.label}</span>
+                  <strong className="font-bold text-ink">{item.value.toLocaleString()}</strong>
+                  <em className="text-right not-italic text-muted">{((item.value / currentCityTotal) * 100).toFixed(1)}%</em>
                 </div>
-
-                {/* PIE / DONUT RATIO CHART */}
-                <div className="md:col-span-5 glass-card p-6 rounded-3xl border border-white/10 space-y-4 shadow-xl flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                      <h3 className="font-heading text-base font-bold text-white flex items-center gap-2">
-                        <PieIcon className="w-4 h-4 text-indigo-400" />
-                        <span>Proportional Severity Share</span>
-                      </h3>
-                      <span className="text-xs text-slate-400 font-mono">{stateName}</span>
-                    </div>
-
-                    <div className="h-48 w-full relative flex items-center justify-center my-2">
-                      <ResponsiveContainer width="100%" height={180} minHeight={180}>
-                        <PieChart>
-                          <Pie
-                            data={cityPie}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={50}
-                            outerRadius={75}
-                            paddingAngle={4}
-                            dataKey="value"
-                          >
-                            {cityPie.map((entry, index) => (
-                              <Cell key={`pie-cell-${index}`} fill={entry.color} stroke="#0b0f19" strokeWidth={2} />
-                            ))}
-                          </Pie>
-                          <Tooltip contentStyle={{ backgroundColor: '#09090d', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '12px', color: '#fff' }} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <div className="text-lg font-black text-white">{totalAccidents.toLocaleString()}</div>
-                        <div className="text-[10px] text-slate-400 uppercase font-bold">Total</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 pt-2 text-xs font-mono">
-                    <div className="flex justify-between p-2.5 rounded-xl bg-black/60 border border-rose-500/30">
-                      <span className="text-slate-300 font-sans">Fatal Severity Share</span>
-                      <span className="text-rose-400 font-black">{fatalPct}%</span>
-                    </div>
-                    <div className="flex justify-between p-2.5 rounded-xl bg-black/60 border border-amber-500/30">
-                      <span className="text-slate-300 font-sans">Major Injury Share</span>
-                      <span className="text-amber-400 font-black">{majorPct}%</span>
-                    </div>
-                    <div className="flex justify-between p-2.5 rounded-xl bg-black/60 border border-emerald-500/30">
-                      <span className="text-slate-300 font-sans">Minor Incident Share</span>
-                      <span className="text-emerald-400 font-black">{minorPct}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
+              ))}
+            </div>
+          </aside>
+          <section className={`${ui.panel} min-w-0`}>
+            <div className={`${ui.panelHeader} [&>svg]:text-brand`}>
+              <div><h2>How severity is distributed</h2><p>A direct count comparison for {selectedCity}.</p></div>
+              <BarChart3 size={18} />
+            </div>
+            <div className={ui.panelBody}>
+              <ResponsiveContainer width="100%" height={360} minHeight={360}>
+                <BarChart data={citySeverity} margin={{ top: 16, right: 8, bottom: 10, left: 0 }}>
+                  <CartesianGrid strokeDasharray="2 5" vertical={false} />
+                  <XAxis dataKey="label" fontSize={11} />
+                  <YAxis fontSize={11} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(value) => Number(value).toLocaleString()} />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    {citySeverity.map((entry) => <Cell key={entry.label} fill={entry.color} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
         </div>
-      )}
+      );
+    }
 
-      {/* TAB CONTENT: TIME */}
-      {activeTab === 'time' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="p-3.5 rounded-2xl bg-black/60 border border-indigo-500/30">
-              <div className="text-[10px] text-slate-400 font-bold uppercase">Peak Risk Window</div>
-              <div className="text-lg font-black text-rose-400">18:00 - 22:00</div>
-              <div className="text-[11px] text-slate-300">Evening rush & low light peak</div>
+    if (activeTab === 'time') {
+      return (
+        <div className="grid items-stretch gap-9 lg:grid-cols-[245px_minmax(0,1fr)] lg:gap-[clamp(2.25rem,6vw,4.75rem)]">
+          <aside className="grid content-start border-t border-line [&>div]:grid [&>div]:gap-1.5 [&>div]:border-b [&>div]:border-line [&>div]:py-5 [&_span]:text-[11px] [&_span]:font-semibold [&_span]:text-muted [&_strong]:text-[19px] [&_strong]:font-semibold [&_strong]:tracking-[-0.025em] [&_p]:m-0 [&_p]:text-[11px] [&_p]:leading-4 [&_p]:text-muted">
+            <div><span>Peak volume</span><strong>{String(highestHour.hour).padStart(2, '0')}:00</strong><p>{highestHour.total.toLocaleString()} incidents</p></div>
+            <div><span>Evening window</span><strong>18:00 to 22:00</strong><p>Traffic volume and lower visibility overlap.</p></div>
+            <div><span>Coverage</span><strong>24 hours</strong><p>Severity shown as a continuous daily profile.</p></div>
+          </aside>
+          <section className={`${ui.panel} min-w-0`}>
+            <div className={`${ui.panelHeader} [&>svg]:text-brand`}>
+              <div><h2>The day has a risk shape</h2><p>Accident volume by hour, stacked by recorded severity.</p></div>
+              <TrendingUp size={18} />
             </div>
-            <div className="p-3.5 rounded-2xl bg-black/60 border border-amber-500/30">
-              <div className="text-[10px] text-slate-400 font-bold uppercase">Highest Fatal Hour</div>
-              <div className="text-lg font-black text-amber-400">12:00 PM - 1:00 PM</div>
-              <div className="text-[11px] text-slate-300">147 Fatal crashes recorded</div>
-            </div>
-            <div className="p-3.5 rounded-2xl bg-black/60 border border-emerald-500/30">
-              <div className="text-[10px] text-slate-400 font-bold uppercase">24-Hour Total Volume</div>
-              <div className="text-lg font-black text-emerald-400">20,000 Incidents</div>
-              <div className="text-[11px] text-slate-300">Monitored across 24 hourly ticks</div>
-            </div>
-          </div>
-
-          {/* HOURLY SMOOTH AREA & STACKED BAR CHART */}
-          <div className="glass-card p-6 rounded-3xl border border-white/10 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="font-heading text-base font-bold text-white flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-indigo-400" />
-                <span>Accident Volume & Trend Curve by Hour of Day (00:00 - 23:00)</span>
-              </h3>
-              <span className="text-xs text-slate-400 font-mono">24-Hour Stacked Volume</span>
-            </div>
-            <div className="h-80 w-full">
-              <ResponsiveContainer width="100%" height={300} minHeight={300}>
-                <AreaChart data={timeData?.hourly || []} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
-                  <defs>
-                    <linearGradient id="areaMinor" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
-                    </linearGradient>
-                    <linearGradient id="areaMajor" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.1}/>
-                    </linearGradient>
-                    <linearGradient id="areaFatal" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.1}/>
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="hour" stroke="#94a3b8" fontSize={11} tickFormatter={(h) => `${h}:00`} />
-                  <YAxis stroke="#94a3b8" fontSize={11} />
-                  <Tooltip contentStyle={{ backgroundColor: '#09090d', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '12px', color: '#fff' }} />
-                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                  <Area type="monotone" dataKey="minor" stackId="1" stroke="#10b981" fill="url(#areaMinor)" name="Minor Severity" />
-                  <Area type="monotone" dataKey="major" stackId="1" stroke="#f59e0b" fill="url(#areaMajor)" name="Major Severity" />
-                  <Area type="monotone" dataKey="fatal" stackId="1" stroke="#f43f5e" fill="url(#areaFatal)" name="Fatal Severity" />
+            <div className={ui.panelBody}>
+              <ResponsiveContainer width="100%" height={390} minHeight={390}>
+                <AreaChart data={timeData.hourly} margin={{ top: 12, right: 10, bottom: 8, left: 0 }}>
+                  <CartesianGrid strokeDasharray="2 5" vertical={false} />
+                  <XAxis dataKey="hour" fontSize={11} tickFormatter={(hour) => `${String(hour).padStart(2, '0')}:00`} />
+                  <YAxis fontSize={11} />
+                  <Tooltip contentStyle={tooltipStyle} labelFormatter={(hour) => `${String(hour).padStart(2, '0')}:00`} />
+                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '14px' }} />
+                  <Area type="monotone" dataKey="minor" stackId="severity" stroke="#19725d" fill="#a9d8ca" name="Minor" />
+                  <Area type="monotone" dataKey="major" stackId="severity" stroke="#9a5b13" fill="#f0c77f" name="Major" />
+                  <Area type="monotone" dataKey="fatal" stackId="severity" stroke="#b42318" fill="#e8a19a" name="Fatal" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-          </div>
+          </section>
         </div>
-      )}
+      );
+    }
 
-      {/* TAB CONTENT: WEATHER */}
-      {activeTab === 'weather' && (
-        <div className="glass-card p-6 rounded-3xl border border-white/10 space-y-4 shadow-xl">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <h3 className="font-heading text-base font-bold text-white">Weather Condition Risk Distribution</h3>
-            <span className="text-xs text-slate-400 font-mono">Severity Breakdown</span>
+    const panelConfig = {
+      state: {
+        title: 'Where the incidents concentrate',
+        description: 'States ranked by total recorded severity.',
+        data: stateData,
+        key: 'state'
+      },
+      weather: {
+        title: 'Conditions change the mix',
+        description: 'Severity distribution under clear, rain, and fog conditions.',
+        data: weatherData,
+        key: 'weather'
+      },
+      road: {
+        title: 'Road form changes exposure',
+        description: 'Highways, urban roads, expressways, and rural routes compared.',
+        data: roadData.road_types || roadData.by_type || [],
+        key: 'road_type'
+      }
+    };
+
+    if (activeTab === 'cause') {
+      return (
+        <section className={`${ui.panel} min-w-0`}>
+          <div className={`${ui.panelHeader} [&>svg]:text-brand`}>
+            <div><h2>What appears most often</h2><p>Total crashes and fatal outcomes by reported primary cause.</p></div>
+            <AlertOctagon size={18} />
           </div>
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height={260} minHeight={260}>
-              <BarChart data={weatherData}>
-                <XAxis dataKey="weather" stroke="#94a3b8" fontSize={11} tickFormatter={(v) => String(v).toUpperCase()} />
-                <YAxis stroke="#94a3b8" fontSize={11} />
-                <Tooltip contentStyle={{ backgroundColor: '#09090d', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '12px', color: '#fff' }} />
-                <Bar dataKey="minor" stackId="a" fill="#10b981" name="Minor" />
-                <Bar dataKey="major" stackId="a" fill="#f59e0b" name="Major" />
-                <Bar dataKey="fatal" stackId="a" fill="#f43f5e" name="Fatal" />
+          <div className={ui.panelBody}>
+            <ResponsiveContainer width="100%" height={390} minHeight={390}>
+              <BarChart data={causeData} layout="vertical" margin={{ top: 8, right: 26, bottom: 8, left: 48 }}>
+                <CartesianGrid strokeDasharray="2 5" horizontal={false} />
+                <XAxis type="number" fontSize={11} />
+                <YAxis type="category" dataKey="cause" width={130} fontSize={11} tickFormatter={formatLabel} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(value) => Number(value).toLocaleString()} />
+                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '14px' }} />
+                <Bar dataKey="total" fill="#175cd3" name="All incidents" radius={[0, 3, 3, 0]} />
+                <Bar dataKey="fatal" fill="#b42318" name="Fatal" radius={[0, 3, 3, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
-      )}
+        </section>
+      );
+    }
 
-      {/* TAB CONTENT: STATE */}
-      {activeTab === 'state' && (
-        <div className="glass-card p-6 rounded-3xl border border-white/10 space-y-4 shadow-xl">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <h3 className="font-heading text-base font-bold text-white">Accidents Across Indian States</h3>
-            <span className="text-xs text-slate-400 font-mono">Ranked by Total Incidents</span>
-          </div>
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height={260} minHeight={260}>
-              <BarChart data={stateData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
-                <XAxis dataKey="state" stroke="#94a3b8" fontSize={11} interval={0} angle={-15} textAnchor="end" />
-                <YAxis stroke="#94a3b8" fontSize={11} />
-                <Tooltip contentStyle={{ backgroundColor: '#09090d', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '12px', color: '#fff' }} />
-                <Bar dataKey="minor" stackId="a" fill="#10b981" name="Minor" />
-                <Bar dataKey="major" stackId="a" fill="#f59e0b" name="Major" />
-                <Bar dataKey="fatal" stackId="a" fill="#f43f5e" name="Fatal" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+    const config = panelConfig[activeTab as 'state' | 'weather' | 'road'];
+    return (
+      <section className={`${ui.panel} min-w-0`}>
+        <div className={`${ui.panelHeader} [&>svg]:text-brand`}>
+          <div><h2>{config.title}</h2><p>{config.description}</p></div>
+          <BarChart3 size={18} />
         </div>
-      )}
+        <div className={ui.panelBody}>
+          <DistributionChart data={config.data} dataKey={config.key} />
+        </div>
+      </section>
+    );
+  };
 
-      {/* TAB CONTENT: CAUSE */}
-      {activeTab === 'cause' && (
-        <div className="glass-card p-6 rounded-3xl border border-white/10 space-y-4 shadow-xl">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <h3 className="font-heading text-base font-bold text-white">Primary Accident Causes</h3>
-            <span className="text-xs text-slate-400 font-mono">Severity Breakdown</span>
-          </div>
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height={260} minHeight={260}>
-              <BarChart data={causeData} layout="vertical" margin={{ left: 100, right: 20, top: 10, bottom: 10 }}>
-                <XAxis type="number" stroke="#94a3b8" fontSize={11} />
-                <YAxis type="category" dataKey="cause" stroke="#94a3b8" fontSize={11} tickFormatter={(v) => String(v).replace('_', ' ').toUpperCase()} />
-                <Tooltip contentStyle={{ backgroundColor: '#09090d', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '12px', color: '#fff' }} />
-                <Bar dataKey="minor" stackId="a" fill="#10b981" name="Minor" />
-                <Bar dataKey="major" stackId="a" fill="#f59e0b" name="Major" />
-                <Bar dataKey="fatal" stackId="a" fill="#f43f5e" name="Fatal" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+  return (
+    <div className={ui.page}>
+      <header className={ui.header}>
+        <div>
+          <h1>Find the pattern behind the count.</h1>
+          <p>Read the historical dataset by place, time, weather, road type, and reported cause without losing the severity context.</p>
         </div>
-      )}
+        <span className="self-center text-[12px] font-semibold text-muted">Dataset 1 with 20,000 records</span>
+      </header>
 
-      {/* TAB CONTENT: ROAD */}
-      {activeTab === 'road' && roadData && (
-        <div className="glass-card p-6 rounded-3xl border border-white/10 space-y-4 shadow-xl">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <h3 className="font-heading text-base font-bold text-white">Road Infrastructure Distribution</h3>
-            <span className="text-xs text-slate-400 font-mono">Road Type vs Severity</span>
-          </div>
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height={260} minHeight={260}>
-              <BarChart data={roadData.road_types || roadData.by_type || []} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
-                <XAxis dataKey="road_type" stroke="#94a3b8" fontSize={11} tickFormatter={(v) => String(v).toUpperCase()} />
-                <YAxis stroke="#94a3b8" fontSize={11} />
-                <Tooltip contentStyle={{ backgroundColor: '#09090d', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '12px', color: '#fff' }} />
-                <Bar dataKey="minor" stackId="a" fill="#10b981" name="Minor" />
-                <Bar dataKey="major" stackId="a" fill="#f59e0b" name="Major" />
-                <Bar dataKey="fatal" stackId="a" fill="#f43f5e" name="Fatal" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
+      <nav className={ui.tabs} aria-label="Analytics dimensions">
+        {tabs.map((tab) => (
+          <button
+            className={`${ui.tab} ${activeTab === tab.id ? ui.activeTab : ''}`}
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.icon}{tab.label}
+          </button>
+        ))}
+      </nav>
+
+      {renderPanel()}
     </div>
   );
 };
