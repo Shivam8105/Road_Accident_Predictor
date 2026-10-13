@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" role="img" aria-labelledby="title desc">
+  <title id="title">AcciPredict road junction mark</title>
+  <desc id="desc">Three road paths meeting in a forward junction.</desc>
+  <path fill="#175CD3" d="M16.35 36V26.6c0-4.56-1.57-7.63-5.42-11.2L5.6 10.45 10.28 5.4l5.33 5.01c1.99 1.86 3.45 3.77 4.39 5.75.94-1.98 2.4-3.89 4.39-5.75l5.33-5.01 4.68 5.05-5.33 4.95c-3.85 3.57-5.42 6.64-5.42 11.2V36h-7.3Z"/>
+  <path fill="#EAF2FF" d="M18.95 34.5h2.1v-7.2h-2.1v7.2Zm0-10.6h2.1v-4.4h-2.1v4.4Zm-5.42-18.1-1.48 1.58 4.33 4.05 1.47-1.59-4.32-4.04Zm12.94 0-4.32 4.04 1.47 1.59 4.33-4.05-1.48-1.58Z"/>
+</svg>

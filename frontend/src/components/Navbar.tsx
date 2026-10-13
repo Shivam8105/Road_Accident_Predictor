@@ -1,20 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  LayoutDashboard, BrainCircuit, SlidersHorizontal, 
-  HelpCircle, Map, BarChart3, Home, ArrowRight,
-  Search, Command, X, Menu
-} from 'lucide-react';
-import gsap from 'gsap';
+import React, { useEffect, useRef, useState } from 'react';
+import { ArrowRight, ChevronDown, Menu, Search, X } from 'lucide-react';
 
-export type NavTab = 
-  | 'home' 
-  | 'dashboard' 
-  | 'predict' 
-  | 'whatif' 
-  | 'explain' 
-  | 'map' 
-  | 'analytics' 
-  | 'detailed' 
+export type NavTab =
+  | 'home'
+  | 'dashboard'
+  | 'predict'
+  | 'whatif'
+  | 'explain'
+  | 'map'
+  | 'analytics'
+  | 'detailed'
   | 'models';
 
 interface NavbarProps {
@@ -22,248 +17,261 @@ interface NavbarProps {
   setActiveTab: (tab: NavTab) => void;
 }
 
+interface NavItem {
+  id: NavTab;
+  label: string;
+  description: string;
+  group: 'primary' | 'tools' | 'research';
+}
+
+const navItems: NavItem[] = [
+  { id: 'home', label: 'Home', description: 'Platform overview', group: 'primary' },
+  { id: 'dashboard', label: 'Dashboard', description: 'Historical accident overview', group: 'primary' },
+  { id: 'predict', label: 'Predictor', description: 'Accident severity forecast', group: 'primary' },
+  { id: 'map', label: 'GIS Map', description: 'Explore spatial risk', group: 'primary' },
+  { id: 'analytics', label: 'Analytics', description: 'Review accident patterns', group: 'primary' },
+  { id: 'whatif', label: 'What-If', description: 'Compare safer scenarios', group: 'tools' },
+  { id: 'explain', label: 'XAI (SHAP)', description: 'Explain prediction factors', group: 'tools' },
+  { id: 'detailed', label: 'Factors', description: 'Inspect detailed accident factors', group: 'research' },
+  { id: 'models', label: 'Models', description: 'Compare model performance', group: 'research' }
+];
+
+const primaryItems = navItems.filter((item) => item.group === 'primary');
+const desktopPrimaryItems = primaryItems.filter((item) => item.id !== 'home');
+const overflowItems = navItems.filter((item) => item.group !== 'primary');
+
+const focusRing = 'cursor-pointer focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-brand/25';
+
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
-  const [isScrolled, setIsScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const toolsMenuRef = useRef<HTMLDivElement>(null);
 
-  const activePillRef = useRef<HTMLDivElement>(null);
-  const navContainerRef = useRef<HTMLDivElement>(null);
-
-  const navItems: { id: NavTab; label: string; icon: React.ReactNode; desc: string }[] = [
-    { id: 'home', label: 'Home', icon: <Home className="w-3.5 h-3.5" />, desc: 'Platform overview & landing' },
-    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-3.5 h-3.5" />, desc: 'Historical accident overview KPIs' },
-    { id: 'predict', label: 'Predictor', icon: <BrainCircuit className="w-3.5 h-3.5" />, desc: 'Tuned Logistic Regression model inference' },
-    { id: 'whatif', label: 'What-If', icon: <SlidersHorizontal className="w-3.5 h-3.5" />, desc: 'Scenario shift risk simulation' },
-    { id: 'explain', label: 'XAI (SHAP)', icon: <HelpCircle className="w-3.5 h-3.5" />, desc: 'SHAP feature impact explanations' },
-    { id: 'map', label: 'GIS Map', icon: <Map className="w-3.5 h-3.5" />, desc: 'India spatial heatmap & city risk map' },
-    { id: 'analytics', label: 'Analytics', icon: <BarChart3 className="w-3.5 h-3.5" />, desc: 'City, state, weather & cause trends' },
-  ];
-
-  // Scroll listener for sticky header background
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Keyboard shortcut listener (Cmd+K / Ctrl+K)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setSearchOpen(prev => !prev);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setSearchOpen((open) => !open);
       }
-      if (e.key === 'Escape') {
+
+      if (event.key === 'Escape') {
         setSearchOpen(false);
         setMobileMenuOpen(false);
+        setToolsOpen(false);
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // GSAP sliding pill indicator calculation
-  const updatePill = () => {
-    if (!navContainerRef.current || !activePillRef.current) return;
-    const activeBtn = navContainerRef.current.querySelector(`[data-tab-id="${activeTab}"]`) as HTMLElement;
-    if (activeBtn) {
-      requestAnimationFrame(() => {
-        gsap.to(activePillRef.current, {
-          x: activeBtn.offsetLeft,
-          width: activeBtn.offsetWidth,
-          duration: 0.25,
-          ease: 'power2.out'
-        });
-      });
-    }
-  };
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen || searchOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen, searchOpen]);
 
   useEffect(() => {
-    updatePill();
-    window.addEventListener('resize', updatePill);
-    return () => window.removeEventListener('resize', updatePill);
-  }, [activeTab]);
+    if (!toolsOpen) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!toolsMenuRef.current?.contains(event.target as Node)) setToolsOpen(false);
+    };
+    document.addEventListener('pointerdown', closeOnOutsideClick);
+    return () => document.removeEventListener('pointerdown', closeOnOutsideClick);
+  }, [toolsOpen]);
 
-  const filteredNavItems = navItems.filter(item => 
-    item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.desc.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredNavItems = navItems.filter((item) => {
+    const query = searchQuery.toLowerCase().trim();
+    return item.label.toLowerCase().includes(query) || item.description.toLowerCase().includes(query);
+  });
 
-  const handleSelectTab = (tabId: NavTab) => {
-    setActiveTab(tabId);
+  const handleSelectTab = (tab: NavTab) => {
+    setActiveTab(tab);
     setSearchOpen(false);
     setMobileMenuOpen(false);
+    setToolsOpen(false);
     setSearchQuery('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const navItemClass = (item: NavItem) => [
+    'relative flex h-16 items-center whitespace-nowrap border-0 bg-transparent px-0 text-[13px] font-medium transition-colors',
+    focusRing,
+    activeTab === item.id
+      ? 'text-ink after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-brand'
+      : 'text-muted hover:text-ink'
+  ].join(' ');
 
   return (
     <>
-      <header className={`sticky top-0 z-50 transition-colors duration-200 ${
-        isScrolled 
-          ? 'bg-[#090d16]/95 backdrop-blur-md border-b border-slate-800 shadow-md' 
-          : 'bg-[#090d16]/80 backdrop-blur-sm border-b border-slate-800/60'
-      } py-2.5 px-4 lg:px-8`}>
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-          {/* BRAND NAME */}
-          <div 
+      <header className="sticky top-0 z-40 h-16 border-b border-line bg-canvas/95 text-ink">
+        <div className="mx-auto flex h-full w-[calc(100%-2rem)] max-w-[1360px] items-center justify-between gap-5 sm:w-[calc(100%-3rem)]">
+          <button
+            className={`flex shrink-0 items-center gap-2.5 border-0 bg-transparent p-0 text-ink ${focusRing}`}
+            type="button"
             onClick={() => handleSelectTab('home')}
-            className="flex items-center gap-2.5 cursor-pointer group shrink-0"
+            aria-label="Go to AcciPredict home"
           >
-            <div className="p-2 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-              <BrainCircuit className="w-5 h-5" />
+            <img className="size-9" src="/accipredict-mark.svg" alt="" aria-hidden="true" />
+            <span className="text-[18px] font-bold tracking-[-0.035em]">Acci<span className="text-brand">Predict</span></span>
+          </button>
+
+          <nav className="hidden h-full items-center gap-5 xl:flex" aria-label="Primary navigation">
+            {desktopPrimaryItems.map((item) => (
+              <button key={item.id} className={navItemClass(item)} type="button" onClick={() => handleSelectTab(item.id)}>
+                {item.label}
+              </button>
+            ))}
+
+            <div ref={toolsMenuRef} className="relative flex h-full items-center">
+              <button
+                className={`flex h-10 items-center gap-1.5 rounded-[10px] border-0 bg-transparent px-2.5 text-[13px] font-medium transition-colors hover:bg-brand-soft hover:text-brand-deep ${overflowItems.some((item) => item.id === activeTab) ? 'text-brand-deep' : 'text-muted'} ${focusRing}`}
+                type="button"
+                onClick={() => setToolsOpen((open) => !open)}
+                aria-expanded={toolsOpen}
+                aria-haspopup="menu"
+              >
+                More
+                <ChevronDown className={`transition-transform ${toolsOpen ? 'rotate-180' : ''}`} size={15} />
+              </button>
+
+              {toolsOpen && (
+                <div className="absolute right-0 top-[calc(100%-4px)] w-72 overflow-hidden rounded-[14px] border border-line bg-surface p-2 shadow-[0_20px_55px_rgba(24,89,201,0.14)]" role="menu">
+                  {overflowItems.map((item) => (
+                    <button
+                      key={item.id}
+                      className={`grid w-full grid-cols-[1fr_auto] items-center gap-4 rounded-[10px] border-0 px-3 py-3 text-left transition-colors hover:bg-brand-soft ${activeTab === item.id ? 'bg-brand-soft' : 'bg-transparent'} ${focusRing}`}
+                      type="button"
+                      onClick={() => handleSelectTab(item.id)}
+                      role="menuitem"
+                    >
+                      <span>
+                        <strong className="block text-[13px] font-semibold text-ink">{item.label}</strong>
+                        <span className="mt-1 block text-[11px] text-muted">{item.description}</span>
+                      </span>
+                      <ArrowRight size={15} className="text-brand" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-heading font-extrabold text-xl tracking-tight text-white">
-                  Acci<span className="text-indigo-400">Predict</span>
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-400 font-medium hidden sm:block">
-                Road Safety & Analytics Platform
-              </p>
-            </div>
-          </div>
+          </nav>
 
-          {/* DESKTOP NAVIGATION TABS */}
-          <div 
-            ref={navContainerRef}
-            className="hidden md:flex items-center gap-1 bg-slate-900/90 p-1 rounded-full border border-slate-800 relative overflow-x-auto scrollbar-none"
-          >
-            {/* Sliding Active Pill */}
-            <div 
-              ref={activePillRef}
-              className="absolute top-1 bottom-1 rounded-full bg-indigo-600 shadow-sm pointer-events-none z-0"
-              style={{ left: 0, width: 0 }}
-            />
-
-            {navItems.map((item) => {
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  data-tab-id={item.id}
-                  onClick={() => handleSelectTab(item.id)}
-                  className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors duration-200 cursor-pointer ${
-                    isActive ? 'text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <span>{item.icon}</span>
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* RIGHT UTILITIES & CTA */}
-          <div className="flex items-center gap-2">
-            {/* Quick Search */}
+          <div className="flex shrink-0 items-center gap-2">
             <button
+              className={`grid size-10 place-items-center rounded-[10px] border border-line bg-surface text-slate-700 transition-colors hover:border-slate-300 hover:text-brand ${focusRing}`}
+              type="button"
               onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-medium cursor-pointer transition-all"
-              title="Quick Search (Cmd+K)"
+              aria-label="Search pages"
+              title="Search pages (Command K)"
             >
-              <Search className="w-3.5 h-3.5 text-slate-400" />
-              <span className="hidden sm:inline text-slate-300">Search</span>
-              <kbd className="hidden lg:inline-flex items-center gap-0.5 text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-950 text-slate-400 border border-slate-800">
-                <Command className="w-2.5 h-2.5" />K
-              </kbd>
+              <Search size={18} strokeWidth={1.8} aria-hidden="true" />
             </button>
-
-            {/* Predict Severity CTA */}
             <button
+              className={`hidden h-10 items-center gap-2 whitespace-nowrap rounded-[10px] border border-brand bg-brand px-4 text-[13px] font-semibold text-white transition-colors hover:border-brand-deep hover:bg-brand-deep active:scale-[0.98] sm:flex ${focusRing}`}
+              type="button"
               onClick={() => handleSelectTab('predict')}
-              className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer whitespace-nowrap shrink-0"
             >
-              <span>Predict Severity</span>
-              <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+              Predict severity
+              <ArrowRight size={16} strokeWidth={1.8} aria-hidden="true" />
             </button>
-
-            {/* Mobile Hamburger Toggle */}
             <button
-              onClick={() => setMobileMenuOpen(prev => !prev)}
-              className="md:hidden p-2 rounded-xl bg-white/5 border border-white/10 text-white cursor-pointer"
+              className={`grid size-10 place-items-center rounded-[10px] border border-line bg-surface text-slate-700 transition-colors hover:border-slate-300 hover:text-brand xl:hidden ${focusRing}`}
+              type="button"
+              onClick={() => setMobileMenuOpen((open) => !open)}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-navigation"
+              aria-label={mobileMenuOpen ? 'Close navigation' : 'Open navigation'}
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileMenuOpen ? <X size={20} strokeWidth={1.8} /> : <Menu size={20} strokeWidth={1.8} />}
             </button>
           </div>
         </div>
-
-        {/* MOBILE DROPDOWN DRAWER */}
-        {mobileMenuOpen && (
-          <div className="md:hidden pt-3 pb-2 space-y-1 border-t border-white/10 mt-2 bg-[#060609]">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleSelectTab(item.id)}
-                className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold ${
-                  activeTab === item.id ? 'bg-indigo-600 text-white font-bold' : 'text-slate-300 hover:bg-white/5'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  {item.icon}
-                  <span>{item.label}</span>
-                </div>
-                <span className="text-[10px] text-slate-400 font-normal">{item.desc}</span>
-              </button>
-            ))}
-          </div>
-        )}
       </header>
 
-      {/* QUICK COMMAND PALETTE MODAL (CMD + K) */}
+      {mobileMenuOpen && (
+        <div id="mobile-navigation" className="fixed inset-x-0 bottom-0 top-16 z-30 overflow-y-auto bg-canvas xl:hidden">
+          <nav className="mx-auto grid w-[calc(100%-2rem)] max-w-3xl gap-8 py-7 sm:w-[calc(100%-3rem)]" aria-label="Mobile navigation">
+            {[
+              { label: 'Main', items: primaryItems },
+              { label: 'Tools and research', items: overflowItems }
+            ].map((section) => (
+              <section key={section.label}>
+                <h2 className="mb-3 text-[12px] font-semibold text-muted">{section.label}</h2>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {section.items.map((item) => (
+                    <button
+                      key={item.id}
+                      className={`grid min-h-20 grid-cols-[1fr_auto] items-center gap-4 rounded-[12px] border p-4 text-left transition-colors ${activeTab === item.id ? 'border-brand bg-brand-soft' : 'border-line bg-surface hover:border-slate-300'} ${focusRing}`}
+                      type="button"
+                      onClick={() => handleSelectTab(item.id)}
+                    >
+                      <span>
+                        <strong className="block text-[15px] font-semibold text-ink">{item.label}</strong>
+                        <span className="mt-1 block text-[12px] leading-5 text-muted">{item.description}</span>
+                      </span>
+                      <ArrowRight size={17} className="text-brand" />
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </nav>
+        </div>
+      )}
+
       {searchOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-start justify-center pt-20 px-4">
-          <div className="w-full max-w-xl glass-card rounded-3xl border border-indigo-500/30 overflow-hidden shadow-2xl space-y-3 p-4 bg-[#0a0a0f]">
-            <div className="flex items-center gap-3 border-b border-white/10 pb-3">
-              <Search className="w-5 h-5 text-indigo-400 shrink-0" />
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center bg-ink/60 px-4 pt-20 sm:pt-24"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) setSearchOpen(false);
+          }}
+        >
+          <section className="w-full max-w-[590px] overflow-hidden rounded-[16px] border border-line bg-surface text-ink shadow-[0_28px_90px_rgba(16,24,40,0.22)]" role="dialog" aria-modal="true" aria-label="Search AcciPredict pages">
+            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-line px-4 py-4 text-muted">
+              <Search size={19} strokeWidth={1.8} aria-hidden="true" />
               <input
-                type="text"
+                className="w-full border-0 bg-transparent py-1 text-[15px] text-ink outline-none placeholder:text-slate-500"
+                type="search"
                 autoFocus
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Type to search tools, modules, analytics..."
-                className="w-full bg-transparent text-white text-sm focus:outline-none placeholder:text-slate-500 font-medium"
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search pages and tools"
+                aria-label="Search pages and tools"
               />
-              <button onClick={() => setSearchOpen(false)} className="text-slate-400 hover:text-white p-1 text-xs cursor-pointer">
-                <X className="w-4 h-4" />
+              <button className={`grid size-8 place-items-center rounded-[8px] border-0 bg-slate-100 text-slate-700 hover:text-brand ${focusRing}`} type="button" onClick={() => setSearchOpen(false)} aria-label="Close search">
+                <X size={17} strokeWidth={1.8} aria-hidden="true" />
               </button>
             </div>
 
-            <div className="space-y-1 max-h-80 overflow-y-auto">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">Quick Navigation</div>
-              {filteredNavItems.length > 0 ? (
-                filteredNavItems.map(item => (
-                  <div
-                    key={item.id}
-                    onClick={() => handleSelectTab(item.id)}
-                    className="flex items-center justify-between p-3 rounded-2xl hover:bg-indigo-600/20 border border-transparent hover:border-indigo-500/30 cursor-pointer transition-all group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-white/5 group-hover:bg-indigo-600 text-slate-300 group-hover:text-white transition-colors">
-                        {item.icon}
-                      </div>
-                      <div>
-                        <div className="font-bold text-xs text-white group-hover:text-indigo-300">{item.label}</div>
-                        <div className="text-[11px] text-slate-400">{item.desc}</div>
-                      </div>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition-colors" />
-                  </div>
-                ))
-              ) : (
-                <div className="py-8 text-center text-xs text-slate-500">No matching module found.</div>
-              )}
+            <div className="p-3">
+              <p className="mb-2 px-2 text-[12px] font-semibold text-muted">Search pages</p>
+              <div className="max-h-[min(370px,60dvh)] overflow-y-auto">
+                {filteredNavItems.length > 0 ? (
+                  filteredNavItems.map((item) => (
+                    <button
+                      key={item.id}
+                      className={`grid w-full grid-cols-[1fr_auto] items-center gap-4 border-0 border-b border-slate-100 bg-transparent px-3 py-3 text-left transition-colors hover:bg-slate-50 ${focusRing}`}
+                      type="button"
+                      onClick={() => handleSelectTab(item.id)}
+                    >
+                      <span>
+                        <strong className="block text-[14px] font-semibold text-ink">{item.label}</strong>
+                        <span className="mt-1 block text-[12px] text-muted">{item.description}</span>
+                      </span>
+                      <ArrowRight size={17} strokeWidth={1.8} className="text-brand" aria-hidden="true" />
+                    </button>
+                  ))
+                ) : (
+                  <p className="px-4 py-10 text-center text-[14px] text-muted">No matching page found.</p>
+                )}
+              </div>
             </div>
-
-            <div className="pt-2 border-t border-white/10 text-[10px] text-slate-500 flex justify-between">
-              <span>Press <kbd className="px-1 bg-white/10 rounded">ESC</kbd> to close</span>
-              <span>AcciPredict Navigation</span>
-            </div>
-          </div>
+          </section>
         </div>
       )}
     </>

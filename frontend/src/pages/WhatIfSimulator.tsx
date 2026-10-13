@@ -1,395 +1,310 @@
-import React, { useState, useEffect } from 'react';
-import type { WhatIfResult } from '../types';
-import { 
-  SlidersHorizontal, RefreshCw, ShieldCheck, 
-  Sparkles, Sun, Moon, AlertTriangle, Lightbulb
+import React, { useEffect, useState } from 'react';
+import {
+  Activity,
+  ArrowRight,
+  CloudSun,
+  Gauge,
+  Lightbulb,
+  RefreshCw,
+  TimerReset,
+  TrafficCone
 } from 'lucide-react';
 import { safeFetchJson } from '../api/client';
+import type { WhatIfResult } from '../types';
+import { RangeSlider } from '../components/RangeSlider';
+import { ui } from '../ui';
+
+interface ScenarioInput {
+  city: string;
+  state: string;
+  latitude: number;
+  longitude: number;
+  hour: number;
+  day_of_week: string;
+  is_weekend: number;
+  road_type: string;
+  lanes: number;
+  traffic_signal: number;
+  weather: string;
+  visibility: string;
+  temperature: number;
+  traffic_density: string;
+  cause: string;
+  is_peak_hour: number;
+  festival: string;
+}
+
+const BASELINE_SCENARIO: ScenarioInput = {
+  city: 'Mumbai',
+  state: 'Maharashtra',
+  latitude: 19.076,
+  longitude: 72.877,
+  hour: 22,
+  day_of_week: 'Friday',
+  is_weekend: 0,
+  road_type: 'highway',
+  lanes: 4,
+  traffic_signal: 0,
+  weather: 'rain',
+  visibility: 'low',
+  temperature: 26,
+  traffic_density: 'high',
+  cause: 'overspeeding',
+  is_peak_hour: 1,
+  festival: 'None'
+};
+
+const INITIAL_SCENARIO: ScenarioInput = {
+  ...BASELINE_SCENARIO,
+  hour: 14,
+  traffic_signal: 1,
+  weather: 'clear',
+  visibility: 'high',
+  traffic_density: 'medium',
+  cause: 'distracted_driving',
+  is_peak_hour: 0
+};
+
+const FALLBACK_RESULT: WhatIfResult = {
+  current: {
+    predicted_severity: 'FATAL',
+    probabilities: { minor: 15, major: 25, fatal: 60 },
+    model_used: 'Tuned Logistic Regression'
+  },
+  modified: {
+    predicted_severity: 'MINOR',
+    probabilities: { minor: 68, major: 22, fatal: 10 },
+    model_used: 'Tuned Logistic Regression'
+  },
+  severity_changed: true,
+  transition: 'FATAL to MINOR'
+};
+
+const severityRows = [
+  { key: 'minor', label: 'Minor', color: '#19725d' },
+  { key: 'major', label: 'Major', color: '#9a5b13' },
+  { key: 'fatal', label: 'Fatal', color: '#b42318' }
+] as const;
+
+const severityTextClass = (severity: string) => (
+  severity.toLowerCase() === 'minor' ? 'text-positive' : severity.toLowerCase() === 'major' ? 'text-warning' : 'text-danger'
+);
+
+async function simulate(modifiedScenario: ScenarioInput) {
+  return safeFetchJson<WhatIfResult>(
+    '/api/ml/what-if',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        current_scenario: BASELINE_SCENARIO,
+        modified_scenario: modifiedScenario
+      })
+    },
+    FALLBACK_RESULT
+  );
+}
 
 export const WhatIfSimulator: React.FC = () => {
-  const [currentScenario] = useState({
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    latitude: 19.076,
-    longitude: 72.877,
-    hour: 22,
-    day_of_week: 'Friday',
-    is_weekend: 0,
-    road_type: 'highway',
-    lanes: 4,
-    traffic_signal: 0,
-    weather: 'rain',
-    visibility: 'low',
-    temperature: 26,
-    traffic_density: 'high',
-    cause: 'overspeeding',
-    is_peak_hour: 1,
-    festival: 'None'
-  });
-
-  const [modifiedScenario, setModifiedScenario] = useState({
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    latitude: 19.076,
-    longitude: 72.877,
-    hour: 14,
-    day_of_week: 'Friday',
-    is_weekend: 0,
-    road_type: 'highway',
-    lanes: 4,
-    traffic_signal: 1,
-    weather: 'clear',
-    visibility: 'high',
-    temperature: 26,
-    traffic_density: 'medium',
-    cause: 'distraction',
-    is_peak_hour: 0,
-    festival: 'None'
-  });
-
+  const [modifiedScenario, setModifiedScenario] = useState<ScenarioInput>(INITIAL_SCENARIO);
   const [result, setResult] = useState<WhatIfResult | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    runWhatIfSimulation();
+    let active = true;
+
+    simulate(INITIAL_SCENARIO)
+      .then((data) => {
+        if (active) setResult(data);
+      })
+      .catch(() => {
+        if (active) setError('The simulation could not be updated. Try again.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const runWhatIfSimulation = async () => {
-    setLoading(true);
-    try {
-      const fallbackResult: WhatIfResult = {
-        current: { predicted_severity: 'FATAL', probabilities: { minor: 15.0, major: 25.0, fatal: 60.0 }, model_used: 'Tuned Logistic Regression' },
-        modified: { predicted_severity: 'MINOR', probabilities: { minor: 68.0, major: 22.0, fatal: 10.0 }, model_used: 'Tuned Logistic Regression' },
-        severity_changed: true,
-        transition: 'FATAL ➔ MINOR'
-      };
+  const updateScenario = <K extends keyof ScenarioInput>(field: K, value: ScenarioInput[K]) => {
+    setModifiedScenario((current) => ({ ...current, [field]: value }));
+  };
 
-      const data = await safeFetchJson<WhatIfResult>(
-        '/api/ml/what-if',
-        {
-          method: 'POST',
-          body: JSON.stringify({ current_scenario: currentScenario, modified_scenario: modifiedScenario })
-        },
-        fallbackResult
-      );
-      setResult(data);
-    } catch (e) {
-      console.error('What-If simulation error:', e);
+  const runSimulation = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      setResult(await simulate(modifiedScenario));
+    } catch {
+      setError('The simulation could not be updated. Try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleModifiedChange = (field: string, value: any) => {
-    setModifiedScenario(prev => ({ ...prev, [field]: value }));
-  };
-
-  const applyIntervention = (type: 'add_signal' | 'clear_weather' | 'reduce_speed' | 'day_time') => {
-    if (type === 'add_signal') {
-      setModifiedScenario(prev => ({ ...prev, traffic_signal: 1 }));
-    } else if (type === 'clear_weather') {
-      setModifiedScenario(prev => ({ ...prev, weather: 'clear', visibility: 'high' }));
-    } else if (type === 'reduce_speed') {
-      setModifiedScenario(prev => ({ ...prev, cause: 'distraction' }));
-    } else if (type === 'day_time') {
-      setModifiedScenario(prev => ({ ...prev, hour: 14, is_peak_hour: 0 }));
-    }
+  const applyIntervention = (type: 'signal' | 'weather' | 'flow' | 'daytime') => {
+    const intervention: Record<typeof type, Partial<ScenarioInput>> = {
+      signal: { traffic_signal: 1 },
+      weather: { weather: 'clear', visibility: 'high' },
+      flow: { traffic_density: 'low', is_peak_hour: 0 },
+      daytime: { hour: 14, is_peak_hour: 0 }
+    };
+    setModifiedScenario((current) => ({ ...current, ...intervention[type] }));
   };
 
   return (
-    <div className="space-y-6 py-2">
-      {/* HEADER */}
-      <div className="border-b border-white/10 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+    <div className={ui.page}>
+      <header className={ui.header}>
         <div>
-          <h1 className="font-heading text-2xl font-bold text-white flex items-center gap-2.5 tracking-tight">
-            <SlidersHorizontal className="w-6 h-6 text-indigo-400" />
-            <span>What-If Scenario Risk Simulator</span>
-          </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Simulate safety interventions & environmental modifications to evaluate counterfactual risk shifts
-          </p>
+          <h1>Change one condition. See what moves.</h1>
+          <p>Compare a known high-risk baseline with a safer road, traffic, or environmental intervention.</p>
         </div>
+        <button className={ui.primaryButton} type="button" onClick={runSimulation} disabled={loading}>
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          Update comparison
+        </button>
+      </header>
 
-        {/* Quick Safety Interventions */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[11px] font-bold text-slate-400 mr-1 flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Interventions:
-          </span>
-          <button
-            type="button"
-            onClick={() => applyIntervention('add_signal')}
-            className="px-2.5 py-1 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/30 text-emerald-300 text-xs font-semibold transition-all cursor-pointer"
-          >
-            🚦 Install Signal
-          </button>
-          <button
-            type="button"
-            onClick={() => applyIntervention('clear_weather')}
-            className="px-2.5 py-1 rounded-lg bg-blue-950/60 hover:bg-blue-900/80 border border-blue-500/30 text-blue-300 text-xs font-semibold transition-all cursor-pointer"
-          >
-            🌤️ Clear Weather
-          </button>
-          <button
-            type="button"
-            onClick={() => applyIntervention('day_time')}
-            className="px-2.5 py-1 rounded-lg bg-amber-950/60 hover:bg-amber-900/80 border border-amber-500/30 text-amber-300 text-xs font-semibold transition-all cursor-pointer"
-          >
-            ☀️ Off-Peak Daytime
-          </button>
+      <div className="mb-6 grid border-y border-line sm:grid-cols-2 lg:grid-cols-[minmax(260px,1fr)_repeat(4,auto)]" aria-label="Quick interventions">
+        <div className="col-span-full grid gap-1 border-b border-line py-4 lg:col-span-1 lg:border-b-0 lg:pr-5">
+          <strong className="text-[13px] font-semibold text-ink">Start with an intervention</strong>
+          <span className="text-[11px] text-muted">Each shortcut changes the proposed scenario. Run the comparison when ready.</span>
         </div>
+        {[
+          { id: 'signal' as const, icon: <TrafficCone size={17} />, label: 'Install signal' },
+          { id: 'weather' as const, icon: <CloudSun size={17} />, label: 'Clear conditions' },
+          { id: 'flow' as const, icon: <Gauge size={17} />, label: 'Reduce traffic load' },
+          { id: 'daytime' as const, icon: <TimerReset size={17} />, label: 'Move off peak' }
+        ].map((item) => (
+          <button className={`inline-flex min-h-16 items-center gap-2 border-0 border-l border-line bg-transparent px-4 text-[12px] font-semibold text-slate-700 hover:bg-brand-soft hover:text-brand-deep [&>svg]:text-brand max-sm:border-l-0 max-sm:border-t ${ui.focus}`} key={item.id} type="button" onClick={() => applyIntervention(item.id)}>{item.icon}{item.label}</button>
+        ))}
       </div>
 
-      {/* CONTEXT NOTICE */}
-      <div className="p-4 rounded-2xl bg-black/60 border border-white/10 flex items-start gap-3 text-xs text-slate-300">
-        <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-        <div>
-          <strong className="font-semibold text-white">How Counterfactual Simulation Works:</strong>
-          <span className="ml-1 text-slate-400">
-            The simulator evaluates how environmental interventions (installing traffic signals, clearing rain/fog hazards, or shifting peak hours) alter the ML model's multi-class prediction probabilities compared to a high-risk baseline.
-          </span>
-        </div>
-      </div>
-
-      {/* MAIN SIMULATOR LAYOUT */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* MODIFIERS PANEL */}
-        <div className="lg:col-span-6 glass-card p-6 rounded-3xl border border-white/10 space-y-5 shadow-2xl">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <h3 className="font-heading text-base font-bold text-white">Simulated Target Interventions</h3>
-            <button
-              onClick={runWhatIfSimulation}
-              disabled={loading}
-              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all shadow-md shadow-indigo-600/20"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span>Update Simulation</span>
-            </button>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(440px,0.85fr)_minmax(500px,1.15fr)]">
+        <section className={ui.panel}>
+          <div className={ui.panelHeader}>
+            <div>
+              <h2>Proposed conditions</h2>
+              <p>Adjust only what would plausibly change at this location.</p>
+            </div>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div>
-              <label className="block text-slate-300 font-semibold mb-1">Weather Hazard</label>
-              <select
-                value={modifiedScenario.weather}
-                onChange={(e) => handleModifiedChange('weather', e.target.value)}
-                className="w-full bg-black/80 border border-white/15 rounded-xl px-3 py-2 text-white font-medium focus:border-indigo-500 focus:outline-none cursor-pointer"
-              >
-                <option value="clear">Clear Weather</option>
-                <option value="rain">Heavy Rainfall</option>
-                <option value="fog">Dense Fog</option>
+          <div className={`${ui.panelBody} ${ui.fields} pb-7`}>
+            <div className={ui.field}>
+              <label htmlFor="sim-weather">Weather</label>
+              <select id="sim-weather" value={modifiedScenario.weather} onChange={(event) => updateScenario('weather', event.target.value)}>
+                <option value="clear">Clear</option>
+                <option value="rain">Heavy rain</option>
+                <option value="fog">Dense fog</option>
               </select>
             </div>
-
-            <div>
-              <label className="block text-slate-300 font-semibold mb-1">Visibility Level</label>
-              <select
-                value={modifiedScenario.visibility}
-                onChange={(e) => handleModifiedChange('visibility', e.target.value)}
-                className="w-full bg-black/80 border border-white/15 rounded-xl px-3 py-2 text-white font-medium focus:border-indigo-500 focus:outline-none cursor-pointer"
-              >
-                <option value="high">High Visibility</option>
-                <option value="medium">Medium Visibility</option>
-                <option value="low">Low Visibility</option>
+            <div className={ui.field}>
+              <label htmlFor="sim-visibility">Visibility</label>
+              <select id="sim-visibility" value={modifiedScenario.visibility} onChange={(event) => updateScenario('visibility', event.target.value)}>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
               </select>
             </div>
-
-            <div>
-              <label className="block text-slate-300 font-semibold mb-1">Traffic Density</label>
-              <select
-                value={modifiedScenario.traffic_density}
-                onChange={(e) => handleModifiedChange('traffic_density', e.target.value)}
-                className="w-full bg-black/80 border border-white/15 rounded-xl px-3 py-2 text-white font-medium focus:border-indigo-500 focus:outline-none cursor-pointer"
-              >
-                <option value="low">Low Flow</option>
-                <option value="medium">Moderate Flow</option>
-                <option value="high">Heavy Congestion</option>
+            <div className={ui.field}>
+              <label htmlFor="sim-density">Traffic density</label>
+              <select id="sim-density" value={modifiedScenario.traffic_density} onChange={(event) => updateScenario('traffic_density', event.target.value)}>
+                <option value="low">Low flow</option>
+                <option value="medium">Moderate flow</option>
+                <option value="high">Heavy congestion</option>
               </select>
             </div>
-
-            <div>
-              <label className="block text-slate-300 font-semibold mb-1">Traffic Signal Control</label>
-              <select
-                value={modifiedScenario.traffic_signal}
-                onChange={(e) => handleModifiedChange('traffic_signal', parseInt(e.target.value))}
-                className="w-full bg-black/80 border border-white/15 rounded-xl px-3 py-2 text-white font-medium focus:border-indigo-500 focus:outline-none cursor-pointer"
-              >
-                <option value={1}>Active Signal Controlled</option>
-                <option value={0}>No Signal / Uncontrolled</option>
+            <div className={ui.field}>
+              <label htmlFor="sim-signal">Signal control</label>
+              <select id="sim-signal" value={modifiedScenario.traffic_signal} onChange={(event) => updateScenario('traffic_signal', Number(event.target.value))}>
+                <option value={1}>Signal controlled</option>
+                <option value={0}>Uncontrolled</option>
               </select>
             </div>
-
-            <div>
-              <label className="block text-slate-300 font-semibold mb-1">Primary Incident Factor</label>
-              <select
-                value={modifiedScenario.cause}
-                onChange={(e) => handleModifiedChange('cause', e.target.value)}
-                className="w-full bg-black/80 border border-white/15 rounded-xl px-3 py-2 text-white font-medium focus:border-indigo-500 focus:outline-none cursor-pointer"
-              >
-                <option value="overspeeding">Over-Speeding</option>
-                <option value="distraction">Distraction / Mobile Use</option>
-                <option value="weather">Weather Hazards</option>
-                <option value="drunk_driving">Drunk Driving</option>
+            <div className={ui.field}>
+              <label htmlFor="sim-cause">Primary factor</label>
+              <select id="sim-cause" value={modifiedScenario.cause} onChange={(event) => updateScenario('cause', event.target.value)}>
+                <option value="overspeeding">Overspeeding</option>
+                <option value="distracted_driving">Distracted driving</option>
+                <option value="weather">Weather hazard</option>
+                <option value="drunk_driving">Drunk driving</option>
               </select>
             </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="text-slate-300 font-semibold">Simulated Time</label>
-                <span className="font-mono text-amber-400 font-bold flex items-center gap-1">
-                  {modifiedScenario.hour >= 6 && modifiedScenario.hour <= 18 ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3 text-indigo-400" />}
-                  {modifiedScenario.hour}:00
-                </span>
+            <div className={ui.field}>
+              <div className="flex justify-between gap-3">
+                <label htmlFor="sim-hour">Time of day</label>
+                <strong className="text-[12px] text-brand-deep">{String(modifiedScenario.hour).padStart(2, '0')}:00</strong>
               </div>
-              <input
-                type="range"
-                min="0"
-                max="23"
+              <RangeSlider
+                id="sim-hour"
+                min={0}
+                max={23}
                 value={modifiedScenario.hour}
-                onChange={(e) => handleModifiedChange('hour', parseInt(e.target.value))}
-                className="w-full accent-indigo-500 cursor-pointer mt-1"
+                aria-valuetext={`${String(modifiedScenario.hour).padStart(2, '0')}:00`}
+                onChange={(event) => updateScenario('hour', Number(event.target.value))}
               />
             </div>
           </div>
-        </div>
-
-        {/* COMPARISON RESULTS PANEL */}
-        <div className="lg:col-span-6 glass-card p-6 rounded-3xl border border-white/10 space-y-5 shadow-2xl">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <h3 className="font-heading text-base font-bold text-white">Risk Transition Output</h3>
-            {result && (
-              <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase border ${
-                result.severity_changed 
-                  ? 'bg-emerald-950 text-emerald-300 border-emerald-500/40 shadow-lg shadow-emerald-500/10' 
-                  : 'bg-amber-950 text-amber-300 border-amber-500/40'
-              }`}>
-                {result.transition}
-              </span>
-            )}
+          <div className="flex gap-3 border-t border-line bg-slate-50 px-6 py-4 text-muted [&>svg]:shrink-0 [&>svg]:text-brand [&_p]:m-0 [&_p]:text-[12px] [&_p]:leading-5">
+            <Lightbulb size={17} />
+            <p>The model recomputes severity probabilities with the location fixed, so the comparison isolates the conditions you changed.</p>
           </div>
+        </section>
 
-          {loading && (
-            <div className="flex items-center justify-center py-20 text-indigo-400">
-              <RefreshCw className="w-8 h-8 animate-spin" />
+        <section className="min-w-0" aria-live="polite">
+          {loading ? (
+            <div className={`${ui.loading} min-h-[520px]`}><div><RefreshCw className="animate-spin" size={20} /> Recomputing both scenarios</div></div>
+          ) : error ? (
+            <div className={`${ui.empty} min-h-[520px]`}>
+              <span className={ui.emptyIcon}><Activity size={23} /></span>
+              <h2>Comparison unavailable</h2>
+              <p>{error}</p>
             </div>
-          )}
-
-          {result && !loading && (
-            <div className="space-y-5">
-              {/* SIDE BY SIDE COMPARISON CARDS */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* BASELINE CARD */}
-                <div className="p-4 rounded-2xl bg-black/60 border border-red-500/30 space-y-3 shadow-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Baseline Scenario</span>
-                    <AlertTriangle className="w-4 h-4 text-rose-400" />
-                  </div>
-                  <div className="text-xl font-black text-rose-400">{result.current.predicted_severity}</div>
-
-                  <div className="space-y-2 text-xs">
-                    <div>
-                      <div className="flex justify-between text-slate-300 font-medium text-[11px] mb-0.5">
-                        <span>Minor</span> <span className="font-mono text-emerald-400">{result.current.probabilities.minor}%</span>
-                      </div>
-                      <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-white/10">
-                        <div className="bg-emerald-500 h-full" style={{ width: `${result.current.probabilities.minor}%` }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-slate-300 font-medium text-[11px] mb-0.5">
-                        <span>Major</span> <span className="font-mono text-amber-400">{result.current.probabilities.major}%</span>
-                      </div>
-                      <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-white/10">
-                        <div className="bg-amber-500 h-full" style={{ width: `${result.current.probabilities.major}%` }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-slate-300 font-medium text-[11px] mb-0.5">
-                        <span>Fatal</span> <span className="font-mono text-rose-400">{result.current.probabilities.fatal}%</span>
-                      </div>
-                      <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-white/10">
-                        <div className="bg-rose-500 h-full" style={{ width: `${result.current.probabilities.fatal}%` }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* SIMULATED CARD */}
-                <div className="p-4 rounded-2xl bg-black/60 border border-emerald-500/30 space-y-3 shadow-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Simulated Target</span>
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  </div>
-                  <div className="text-xl font-black text-emerald-400">{result.modified.predicted_severity}</div>
-
-                  <div className="space-y-2 text-xs">
-                    <div>
-                      <div className="flex justify-between text-slate-300 font-medium text-[11px] mb-0.5">
-                        <span>Minor</span> <span className="font-mono text-emerald-400">{result.modified.probabilities.minor}%</span>
-                      </div>
-                      <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-white/10">
-                        <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${result.modified.probabilities.minor}%` }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-slate-300 font-medium text-[11px] mb-0.5">
-                        <span>Major</span> <span className="font-mono text-amber-400">{result.modified.probabilities.major}%</span>
-                      </div>
-                      <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-white/10">
-                        <div className="bg-amber-500 h-full transition-all duration-500" style={{ width: `${result.modified.probabilities.major}%` }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-slate-300 font-medium text-[11px] mb-0.5">
-                        <span>Fatal</span> <span className="font-mono text-rose-400">{result.modified.probabilities.fatal}%</span>
-                      </div>
-                      <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-white/10">
-                        <div className="bg-rose-500 h-full transition-all duration-500" style={{ width: `${result.modified.probabilities.fatal}%` }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+          ) : result ? (
+            <div className="overflow-hidden rounded-[16px] border border-line bg-surface">
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 border-b border-line px-5 py-8 sm:gap-6 sm:px-8 sm:py-10 [&>div]:grid [&>div]:gap-2 [&>div:last-child]:text-right [&_span]:text-[12px] [&_span]:font-semibold [&_span]:text-muted">
+                <div><span>Known baseline</span><strong className={`text-[clamp(2rem,4vw,4rem)] font-semibold leading-none tracking-[-0.055em] capitalize ${severityTextClass(result.current.predicted_severity)}`}>{result.current.predicted_severity.toLowerCase()}</strong></div>
+                <ArrowRight className="text-slate-400" size={28} aria-hidden="true" />
+                <div><span>Proposed scenario</span><strong className={`text-[clamp(2rem,4vw,4rem)] font-semibold leading-none tracking-[-0.055em] capitalize ${severityTextClass(result.modified.predicted_severity)}`}>{result.modified.predicted_severity.toLowerCase()}</strong></div>
               </div>
 
-              {/* PROBABILITY DELTA SHIFT CARD */}
-              <div className="p-4 rounded-2xl bg-black/60 border border-white/15 space-y-2.5 text-xs">
-                <div className="font-bold text-white flex items-center justify-between">
-                  <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Probability Shift Delta</span>
-                  <span className="text-[10px] text-slate-400 font-mono">Net Intervention Delta</span>
+              <div className="px-4 pb-3 pt-5 sm:px-7">
+                <div className="grid min-h-8 grid-cols-[minmax(80px,1fr)_62px_62px_72px] items-center gap-2 text-[10px] font-semibold text-muted sm:grid-cols-[minmax(120px,1fr)_86px_86px_86px] sm:gap-3 [&>span:not(:first-child)]:text-right">
+                  <span>Severity likelihood</span>
+                  <span>Baseline</span>
+                  <span>Proposed</span>
+                  <span>Change</span>
                 </div>
-
-                <div className="grid grid-cols-3 gap-2.5 pt-1 text-center font-mono">
-                  <div className="p-2.5 rounded-xl bg-slate-950 border border-white/10">
-                    <div className="text-[10px] text-slate-400 font-sans">Minor Shift</div>
-                    <div className={`font-bold text-sm ${result.modified.probabilities.minor - result.current.probabilities.minor >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {result.modified.probabilities.minor - result.current.probabilities.minor >= 0 ? '+' : ''}
-                      {(result.modified.probabilities.minor - result.current.probabilities.minor).toFixed(1)}%
+                {severityRows.map(({ key, label, color }) => {
+                  const before = result.current.probabilities[key];
+                  const after = result.modified.probabilities[key];
+                  const delta = after - before;
+                  const harmfulChange = key === 'minor' ? delta < 0 : delta > 0;
+                  return (
+                    <div className="grid min-h-[52px] grid-cols-[minmax(80px,1fr)_62px_62px_72px] items-center gap-2 border-t border-line text-[12px] sm:grid-cols-[minmax(120px,1fr)_86px_86px_86px] sm:gap-3 [&>strong]:text-right [&>em]:text-right [&>em]:not-italic" key={key}>
+                      <span className="flex items-center gap-2 font-semibold text-slate-700"><i className="h-6 w-1 rounded-[2px]" style={{ backgroundColor: color }} />{label}</span>
+                      <strong>{before.toFixed(1)}%</strong>
+                      <strong>{after.toFixed(1)}%</strong>
+                      <em className={harmfulChange ? 'text-danger' : 'text-positive'}>{delta > 0 ? '+' : ''}{delta.toFixed(1)} pts</em>
                     </div>
-                  </div>
+                  );
+                })}
+              </div>
 
-                  <div className="p-2.5 rounded-xl bg-slate-950 border border-white/10">
-                    <div className="text-[10px] text-slate-400 font-sans">Major Shift</div>
-                    <div className="font-bold text-sm text-amber-400">
-                      {result.modified.probabilities.major - result.current.probabilities.major >= 0 ? '+' : ''}
-                      {(result.modified.probabilities.major - result.current.probabilities.major).toFixed(1)}%
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-slate-950 border border-white/10">
-                    <div className="text-[10px] text-slate-400 font-sans">Fatal Shift</div>
-                    <div className={`font-bold text-sm ${result.modified.probabilities.fatal - result.current.probabilities.fatal <= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {result.modified.probabilities.fatal - result.current.probabilities.fatal >= 0 ? '+' : ''}
-                      {(result.modified.probabilities.fatal - result.current.probabilities.fatal).toFixed(1)}%
-                    </div>
-                  </div>
-                </div>
+              <div className="grid gap-4 border-t border-line bg-slate-50 px-5 py-6 sm:grid-cols-[130px_1fr] sm:gap-6 sm:px-7">
+                <span className="text-[11px] font-semibold text-muted">What changed</span>
+                <dl className="m-0 grid gap-3 sm:grid-cols-2 sm:gap-x-6 [&>div]:grid [&>div]:gap-1 [&_dt]:text-[10px] [&_dt]:text-muted [&_dd]:m-0 [&_dd]:flex [&_dd]:items-center [&_dd]:gap-1.5 [&_dd]:text-[12px] [&_dd]:font-semibold [&_dd]:capitalize [&_dd]:text-slate-700">
+                  <div><dt>Weather</dt><dd>{BASELINE_SCENARIO.weather} <ArrowRight size={13} /> {modifiedScenario.weather}</dd></div>
+                  <div><dt>Control</dt><dd>{BASELINE_SCENARIO.traffic_signal ? 'signal' : 'none'} <ArrowRight size={13} /> {modifiedScenario.traffic_signal ? 'signal' : 'none'}</dd></div>
+                  <div><dt>Time</dt><dd>{BASELINE_SCENARIO.hour}:00 <ArrowRight size={13} /> {modifiedScenario.hour}:00</dd></div>
+                  <div><dt>Traffic</dt><dd>{BASELINE_SCENARIO.traffic_density} <ArrowRight size={13} /> {modifiedScenario.traffic_density}</dd></div>
+                </dl>
               </div>
             </div>
-          )}
-        </div>
+          ) : null}
+        </section>
       </div>
     </div>
   );
