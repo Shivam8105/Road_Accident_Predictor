@@ -20,6 +20,13 @@ def test_all_endpoints():
     assert res.status_code == 200, f"Root frontend serving failed: {res.text}"
     assert "TRAFFIC" in res.text or "<div id=\"root\">" in res.text
     print("  ✓ GET / (Frontend Web App) -> 200 OK")
+
+    # Static Assets & Images
+    res = client.get("/visuals/hero-road.webp")
+    assert res.status_code == 200 and "image/webp" in res.headers.get("content-type", "")
+    res = client.get("/accipredict-mark.svg")
+    assert res.status_code == 200 and "image/svg+xml" in res.headers.get("content-type", "")
+    print("  ✓ GET /visuals/* & SVG icons (Static Images) -> 200 OK")
     
     # 2. ML Metrics
     res = client.get("/api/ml/metrics")

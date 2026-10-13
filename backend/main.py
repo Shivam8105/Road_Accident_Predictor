@@ -194,11 +194,17 @@ def get_dataset2_analytics():
 frontend_dist_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"))
 if os.path.exists(frontend_dist_dir):
     app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist_dir, "assets")), name="assets")
+    visuals_dir = os.path.join(frontend_dist_dir, "visuals")
+    if os.path.exists(visuals_dir):
+        app.mount("/visuals", StaticFiles(directory=visuals_dir), name="visuals")
 
     @app.get("/{full_path:path}")
     def serve_frontend(full_path: str):
         if full_path.startswith("api/"):
             raise HTTPException(status_code=404, detail="API route not found")
+        target_file = os.path.abspath(os.path.join(frontend_dist_dir, full_path))
+        if full_path and target_file.startswith(frontend_dist_dir) and os.path.isfile(target_file):
+            return FileResponse(target_file)
         index_file = os.path.join(frontend_dist_dir, "index.html")
         if os.path.exists(index_file):
             return FileResponse(index_file)
